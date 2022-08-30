@@ -8,7 +8,5 @@ pub mod trie;
 
 pub(crate) mod nibbles;
 pub(crate) mod node;
-pub mod op;
 
-pub use crate::op::*;
 pub use keccak_hash::H256;

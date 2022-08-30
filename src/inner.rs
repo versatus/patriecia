@@ -7,14 +7,12 @@ use std::sync::Arc;
 
 use hashbrown::{HashMap, HashSet};
 use keccak_hash::{keccak, H256};
-use left_right::Absorb;
 use rlp::{Prototype, Rlp, RlpStream};
 
 use crate::db::{Database, MemoryDB};
 use crate::error::TrieError;
 use crate::nibbles::Nibbles;
 use crate::node::{BranchNode, Node};
-use crate::op::Operation;
 use crate::result::Result;
 use crate::trie::Trie;
 
@@ -913,35 +911,6 @@ where
                 return None;
             }
         }
-    }
-}
-
-impl<'a, D> Absorb<Operation<'a>> for InnerTrie<D>
-where
-    D: Database,
-{
-    fn absorb_first(&mut self, operation: &mut Operation<'a>, _other: &Self) {
-        match operation {
-            // TODO: report errors via instrumentation
-            Operation::Add(key, value) => {
-                self.insert(key, value).unwrap_or_default();
-                self.commit().unwrap_or_default();
-            }
-            Operation::Remove(key) => {
-                self.remove(key).unwrap_or_default();
-            }
-            Operation::Extend(values) => {
-                // TODO: temp hack to get this going. Refactor ASAP
-                for (k, v) in values {
-                    self.insert(k, v).unwrap_or_default();
-                }
-                self.commit().unwrap_or_default();
-            }
-        }
-    }
-
-    fn sync_with(&mut self, first: &Self) {
-        *self = first.clone();
     }
 }
 
