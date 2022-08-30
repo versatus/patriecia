@@ -240,6 +240,47 @@ where
         let trie = InnerTrie::new(proof_db).at_root(root_hash);
         trie.get(key).or(Err(TrieError::InvalidProof))
     }
+
+    fn commit(&mut self) -> Result<H256> {
+        let root_hash = match self.write_node(&self.root.clone()) {
+            EncodedNode::Hash(hash) => hash,
+            EncodedNode::Inline(encoded) => {
+                let hash = keccak(&encoded);
+                self.cache.insert(hash.as_bytes().to_vec(), encoded);
+                hash
+            }
+        };
+
+        let mut keys = Vec::with_capacity(self.cache.len());
+        let mut values = Vec::with_capacity(self.cache.len());
+        for (k, v) in self.cache.drain() {
+            keys.push(k.to_vec());
+            values.push(v);
+        }
+
+        self.db
+            .insert_batch(keys, values)
+            .map_err(|e| TrieError::Database(e.to_string()))?;
+
+        let removed_keys: Vec<Vec<u8>> = self
+            .passing_keys
+            .iter()
+            .filter(|h| !self.gen_keys.contains(&h.to_vec()))
+            .map(|h| h.to_vec())
+            .collect();
+
+        self.db
+            .remove_batch(&removed_keys)
+            .map_err(|e| TrieError::Database(e.to_string()))?;
+
+        self.root_hash = root_hash;
+        self.gen_keys.clear();
+        self.passing_keys.clear();
+        self.root = self
+            .recover_from_db(root_hash)?
+            .expect("The root that was just created is missing");
+        Ok(root_hash)
+    }
 }
 
 /// InnerTrie iternals
@@ -610,47 +651,6 @@ where
                 Ok(rest)
             }
         }
-    }
-
-    pub fn commit(&mut self) -> Result<H256> {
-        let root_hash = match self.write_node(&self.root.clone()) {
-            EncodedNode::Hash(hash) => hash,
-            EncodedNode::Inline(encoded) => {
-                let hash = keccak(&encoded);
-                self.cache.insert(hash.as_bytes().to_vec(), encoded);
-                hash
-            }
-        };
-
-        let mut keys = Vec::with_capacity(self.cache.len());
-        let mut values = Vec::with_capacity(self.cache.len());
-        for (k, v) in self.cache.drain() {
-            keys.push(k.to_vec());
-            values.push(v);
-        }
-
-        self.db
-            .insert_batch(keys, values)
-            .map_err(|e| TrieError::Database(e.to_string()))?;
-
-        let removed_keys: Vec<Vec<u8>> = self
-            .passing_keys
-            .iter()
-            .filter(|h| !self.gen_keys.contains(&h.to_vec()))
-            .map(|h| h.to_vec())
-            .collect();
-
-        self.db
-            .remove_batch(&removed_keys)
-            .map_err(|e| TrieError::Database(e.to_string()))?;
-
-        self.root_hash = root_hash;
-        self.gen_keys.clear();
-        self.passing_keys.clear();
-        self.root = self
-            .recover_from_db(root_hash)?
-            .expect("The root that was just created is missing");
-        Ok(root_hash)
     }
 
     fn write_node(&mut self, to_encode: &Node) -> EncodedNode {
