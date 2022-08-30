@@ -612,7 +612,7 @@ where
         }
     }
 
-    fn commit(&mut self) -> Result<H256> {
+    pub fn commit(&mut self) -> Result<H256> {
         let root_hash = match self.write_node(&self.root.clone()) {
             EncodedNode::Hash(hash) => hash,
             EncodedNode::Inline(encoded) => {

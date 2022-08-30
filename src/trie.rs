@@ -20,6 +20,8 @@ pub trait Trie<D: Database> {
     /// in the cache to the database to recalculate the root.
     fn root_hash(&mut self) -> Result<H256>;
 
+    fn commit(&mut self) -> Result<H256>;
+
     /// Prove constructs a merkle proof for key. The result contains all encoded nodes
     /// on the path to the value at key. The value itself is also included in the last
     /// node and can be retrieved by verifying the proof.
