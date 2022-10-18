@@ -1,7 +1,6 @@
 /// Adapted from https://github.com/carver/eth-trie.rs which is a fork of https://github.com/citahub/cita-trie
-/// Beware there's a significant amount of TODOs scattered around the file, these will be addressed
-/// in due time.
-///
+/// Beware there's a significant amount of TODOs scattered around the file,
+/// these will be addressed in due time.
 use std::borrow::BorrowMut;
 use std::sync::Arc;
 
@@ -9,13 +8,15 @@ use hashbrown::{HashMap, HashSet};
 use keccak_hash::{keccak, H256};
 use rlp::{Prototype, Rlp, RlpStream};
 
-use crate::common::{Key, OwnedValue, Value};
-use crate::db::{Database, MemoryDB};
-use crate::error::TrieError;
-use crate::nibbles::Nibbles;
-use crate::node::{BranchNode, ExtensionNode, HashNode, Node};
-use crate::result::Result;
-use crate::trie::Trie;
+use crate::{
+    common::{Key, OwnedValue, Value},
+    db::{Database, MemoryDB},
+    error::TrieError,
+    nibbles::Nibbles,
+    node::{BranchNode, ExtensionNode, HashNode, Node},
+    result::Result,
+    trie::Trie,
+};
 
 const HASHED_LENGTH: usize = 32;
 
@@ -80,7 +81,8 @@ where
         }
     }
 
-    /// Returns the number of nodes stored in the underlying database, including the root node.
+    /// Returns the number of nodes stored in the underlying database, including
+    /// the root node.
     pub fn len(&self) -> usize {
         // NOTE; this count includes the root node
         self.db.len().unwrap_or(0)
@@ -96,7 +98,6 @@ where
     D: Database,
 {
     /// Returns the value for key stored in the trie.
-    // fn get(&self, key: &[u8]) -> Result<Option<Vec<u8>>> {
     fn get(&self, key: Key) -> Result<Option<Vec<u8>>> {
         let path = &Nibbles::from_raw(key, true);
         let result = self.get_at(&self.root, path, 0);
@@ -119,14 +120,12 @@ where
     }
 
     /// Checks that the key is present in the trie
-    // fn contains(&self, key: &[u8]) -> Result<bool> {
     fn contains(&self, key: Key) -> Result<bool> {
         let path = &Nibbles::from_raw(key, true);
         Ok(self.get_at(&self.root, path, 0)?.map_or(false, |_| true))
     }
 
     /// Inserts value into trie and modifies it if it exists
-    // fn insert(&mut self, key: &[u8], value: &[u8]) -> Result<()> {
     fn insert(&mut self, key: Key, value: Value) -> Result<()> {
         // TODO: Consider not emptying nodes when providing empty values
         if value.is_empty() {
@@ -158,7 +157,6 @@ where
     }
 
     /// Removes any existing value for key from the trie.
-    // fn remove(&mut self, key: &[u8]) -> Result<bool> {
     fn remove(&mut self, key: Key) -> Result<bool> {
         let path = &Nibbles::from_raw(key, true);
 
@@ -184,19 +182,26 @@ where
         Ok(removed)
     }
 
-    /// Saves all the nodes in the db, clears the cache data, recalculates the root.
-    /// Returns the root hash of the trie.
+    /// Saves all the nodes in the db, clears the cache data, recalculates the
+    /// root. Returns the root hash of the trie.
     fn root_hash(&mut self) -> Result<H256> {
         self.commit()
     }
 
-    /// Prove constructs a merkle proof for key. The result contains all encoded nodes
-    /// on the path to the value at key. The value itself is also included in the last
-    /// node and can be retrieved by verifying the proof.
+    /// Returns all values stored on the trie.
+    fn values(&self) -> Result<Vec<u8>> {
+        Ok(self.iter().collect())
+    }
+
+    /// Prove constructs a merkle proof for key. The result contains all encoded
+    /// nodes on the path to the value at key. The value itself is also
+    /// included in the last node and can be retrieved by verifying the
+    /// proof.
     ///
-    /// If the trie does not contain a value for key, the returned proof contains all
-    /// nodes of the longest existing prefix of the key (at least the root node), ending
-    /// with the node that proves the absence of the key.
+    /// If the trie does not contain a value for key, the returned proof
+    /// contains all nodes of the longest existing prefix of the key (at
+    /// least the root node), ending with the node that proves the absence
+    /// of the key.
     fn get_proof(&mut self, key: Key) -> Result<Vec<Vec<u8>>> {
         let key_path = &Nibbles::from_raw(key, true);
         let result = self.get_path_at(&self.root, key_path, 0);
@@ -218,7 +223,7 @@ where
 
         let mut path = result?;
         match self.root {
-            Node::Empty => {}
+            Node::Empty => {},
             _ => path.push(self.root.clone()),
         }
 
@@ -229,10 +234,12 @@ where
             .collect())
     }
 
-    /// return value if key exists, None if key not exist, Error if proof is wrong
+    /// return value if key exists, None if key not exist, Error if proof is
+    /// wrong
     ///
-    /// Verifies whether a value exists for a key within the trie and returs its associated value
-    /// if it exists, none if it doesn't or an error if the proof is invalid
+    /// Verifies whether a value exists for a key within the trie and returs its
+    /// associated value if it exists, none if it doesn't or an error if the
+    /// proof is invalid
     fn verify_proof(
         &self,
         root_hash: H256,
@@ -260,7 +267,7 @@ where
                 let hash = keccak(&encoded);
                 self.cache.insert(hash.as_bytes().to_vec(), encoded);
                 hash
-            }
+            },
         };
 
         let mut keys = Vec::with_capacity(self.cache.len());
@@ -306,11 +313,7 @@ where
         path: &Nibbles,
         path_index: usize,
     ) -> Result<Option<Vec<u8>>> {
-        //
-        //
-        //
         let partial = &path.offset(path_index);
-
         match source_node {
             Node::Empty => Ok(None),
             Node::Leaf(leaf) => {
@@ -319,7 +322,7 @@ where
                 } else {
                     Ok(None)
                 }
-            }
+            },
             Node::Branch(branch) => {
                 let borrow_branch = branch;
 
@@ -329,41 +332,9 @@ where
                     let index = partial.at(0);
                     self.get_at(&borrow_branch.children[index], path, path_index + 1)
                 }
-            }
-            Node::Extension(extension) => {
-                //
-                self.get_extension_node(extension, path, path_index)
-                //
-
-                // let extension = extension;
-                //
-                // let prefix = &extension.prefix;
-                // let match_len = partial.common_prefix(prefix);
-                // if match_len == prefix.len() {
-                //     self.get_at(&extension.node, path, path_index + match_len)
-                // } else {
-                //     Ok(None)
-                // }
-            }
-
-            Node::Hash(hash_node) => {
-                //
-                //
-                self.get_hash_node(hash_node, path, path_index)
-                //
-                //
-                // let node_hash = hash_node.hash;
-                // let node =
-                //     self.recover_from_db(node_hash)?
-                //         .ok_or_else(|| TrieError::MissingTrieNode {
-                //             node_hash,
-                //             traversed: Some(path.slice(0, path_index)),
-                //             root_hash: Some(self.root_hash),
-                //             err_key: None,
-                //         })?;
-                //
-                // self.get_at(&node, path, path_index)
-            }
+            },
+            Node::Extension(extension) => self.get_extension_node(extension, path, path_index),
+            Node::Hash(hash_node) => self.get_hash_node(hash_node, path, path_index),
         }
     }
 
@@ -442,7 +413,7 @@ where
                     partial.slice(0, match_index),
                     Node::Branch(branch),
                 ))
-            }
+            },
             Node::Branch(ref mut branch) => {
                 let mut borrow_branch = branch.borrow_mut();
 
@@ -456,7 +427,7 @@ where
                 *borrow_branch.children[partial.at(0)] = new_child;
 
                 Ok(Node::Branch(branch.clone()))
-            }
+            },
             Node::Extension(ext) => {
                 let mut borrow_ext = ext.borrow_mut();
 
@@ -499,7 +470,7 @@ where
                 *borrow_ext.node = new_node;
 
                 Ok(Node::Extension(ext.clone()))
-            }
+            },
 
             Node::Hash(hash_node) => {
                 let node_hash = hash_node.hash;
@@ -514,7 +485,7 @@ where
                         })?;
 
                 self.insert_at(&mut node, path, path_index, value)
-            }
+            },
         }
     }
 
@@ -532,7 +503,7 @@ where
                     return Ok((Node::Empty, true));
                 }
                 Ok((Node::Leaf(leaf.clone()), false))
-            }
+            },
             Node::Branch(branch) => {
                 let mut borrow_branch = branch.borrow_mut();
 
@@ -550,7 +521,7 @@ where
                 }
 
                 Ok((Node::Branch(branch.clone()), deleted))
-            }
+            },
             Node::Extension(ext) => {
                 let borrow_ext = ext.borrow_mut();
 
@@ -569,7 +540,7 @@ where
                 } else {
                     Ok((Node::Extension(ext.clone()), false))
                 }
-            }
+            },
             Node::Hash(hash_node) => {
                 let hash = hash_node.hash;
                 self.passing_keys.insert(hash.as_bytes().to_vec());
@@ -584,7 +555,7 @@ where
                         })?;
 
                 self.delete_at(&mut node, path, path_index)
-            }
+            },
         }?;
 
         if deleted {
@@ -595,8 +566,9 @@ where
     }
 
     // This refactors the trie after a node deletion, as necessary.
-    // For example, if a deletion removes a child of a branch node, leaving only one child left, it
-    // needs to be modified into an extension and maybe combined with its parent and/or child node.
+    // For example, if a deletion removes a child of a branch node, leaving only one
+    // child left, it needs to be modified into an extension and maybe combined
+    // with its parent and/or child node.
     fn degenerate(&mut self, n: Node) -> Result<Node> {
         match n {
             Node::Branch(ref branch) => {
@@ -626,7 +598,7 @@ where
                 } else {
                     Ok(Node::Branch(branch.clone()))
                 }
-            }
+            },
             Node::Extension(ref ext) => {
                 let borrow_ext = ext;
 
@@ -638,11 +610,11 @@ where
                         let new_prefix = prefix.join(&borrow_sub_ext.prefix);
                         let new_n = Node::from_extension(new_prefix, *borrow_sub_ext.node.clone());
                         self.degenerate(new_n)
-                    }
+                    },
                     Node::Leaf(leaf) => {
                         let new_prefix = prefix.join(&leaf.key);
                         Ok(Node::from_leaf(new_prefix, leaf.value.clone()))
-                    }
+                    },
                     // try again after recovering node from the db.
                     Node::Hash(hash_node) => {
                         let node_hash = hash_node.hash;
@@ -659,20 +631,21 @@ where
 
                         let n = Node::from_extension(borrow_ext.prefix.clone(), new_node);
                         self.degenerate(n)
-                    }
+                    },
                     _ => Ok(Node::Extension(ext.clone())),
                 }
-            }
+            },
             _ => Ok(n),
         }
     }
 
-    // Get nodes path along the key, only the nodes whose encode length is greater than
-    // hash length are added.
-    // For embedded nodes whose data are already contained in their parent node, we don't need to
-    // add them in the path.
-    // In the code below, we only add the nodes get by `get_node_from_hash`, because they contains
-    // all data stored in db, including nodes whose encoded data is less than hash length.
+    // Get nodes path along the key, only the nodes whose encode length is greater
+    // than hash length are added.
+    // For embedded nodes whose data are already contained in their parent node, we
+    // don't need to add them in the path.
+    // In the code below, we only add the nodes get by `get_node_from_hash`, because
+    // they contains all data stored in db, including nodes whose encoded data
+    // is less than hash length.
     fn get_path_at(
         &self,
         source_node: &Node,
@@ -691,7 +664,7 @@ where
                     let node = &borrow_branch.children[partial.at(0)];
                     self.get_path_at(node, path, path_index + 1)
                 }
-            }
+            },
             Node::Extension(ext) => {
                 let borrow_ext = ext;
 
@@ -703,7 +676,7 @@ where
                 } else {
                     Ok(vec![])
                 }
-            }
+            },
             Node::Hash(hash_node) => {
                 let node_hash = hash_node.hash;
                 let n = self
@@ -717,7 +690,7 @@ where
                 let mut rest = self.get_path_at(&n, path, path_index)?;
                 rest.push(n);
                 Ok(rest)
-            }
+            },
         }
     }
 
@@ -749,7 +722,7 @@ where
                 stream.append(&leaf.key.encode_compact());
                 stream.append(&leaf.value);
                 stream.out().to_vec()
-            }
+            },
             Node::Branch(branch) => {
                 let borrow_branch = branch;
 
@@ -767,7 +740,7 @@ where
                     None => stream.append_empty_data(),
                 };
                 stream.out().to_vec()
-            }
+            },
             Node::Extension(ext) => {
                 let borrow_ext = ext;
 
@@ -778,7 +751,7 @@ where
                     EncodedNode::Inline(data) => stream.append_raw(&data, 1),
                 };
                 stream.out().to_vec()
-            }
+            },
             Node::Hash(_hash) => unreachable!(),
         }
     }
@@ -799,7 +772,7 @@ where
 
                     Ok(Node::from_extension(key, n))
                 }
-            }
+            },
             Prototype::List(17) => {
                 let mut nodes: [Box<Node>; 16] = Default::default();
                 #[allow(clippy::needless_range_loop)]
@@ -818,7 +791,7 @@ where
                 };
 
                 Ok(Node::from_branch(nodes, value))
-            }
+            },
             _ => {
                 if r.is_data() && r.size() == HASHED_LENGTH {
                     let hash = H256::from_slice(r.data()?);
@@ -826,7 +799,7 @@ where
                 } else {
                     Err(TrieError::InvalidData)
                 }
-            }
+            },
         }
     }
 
@@ -907,30 +880,30 @@ where
                             Node::Leaf(ref leaf) => {
                                 let cur_len = self.nibble.len();
                                 self.nibble.truncate(cur_len - leaf.key.len());
-                            }
+                            },
 
                             Node::Extension(ref ext) => {
                                 let cur_len = self.nibble.len();
                                 self.nibble.truncate(cur_len - ext.prefix.len());
-                            }
+                            },
 
                             Node::Branch(_) => {
                                 self.nibble.pop();
-                            }
-                            _ => {}
+                            },
+                            _ => {},
                         }
                         self.nodes.pop();
-                    }
+                    },
 
                     (TraceStatus::Doing, Node::Extension(ref ext)) => {
                         self.nibble.extend(&ext.prefix);
                         self.nodes.push((*ext.node.clone()).into());
-                    }
+                    },
 
                     (TraceStatus::Doing, Node::Leaf(ref leaf)) => {
                         self.nibble.extend(&leaf.key);
                         return Some((self.nibble.encode_raw().0, leaf.value.clone()));
-                    }
+                    },
 
                     (TraceStatus::Doing, Node::Branch(ref branch)) => {
                         let value_option = branch.value.clone();
@@ -939,7 +912,7 @@ where
                         } else {
                             continue;
                         }
-                    }
+                    },
 
                     (TraceStatus::Doing, Node::Hash(ref hash_node)) => {
                         let node_hash = hash_node.hash;
@@ -949,15 +922,16 @@ where
                                 Some(node) => self.nodes.push(node.into()),
                                 None => {
                                     // TODO: add proper instrumentation
-                                    // warn!("Trie node with hash {:?} is missing from the database. Skipping...", &node_hash);
+                                    // warn!("Trie node with hash {:?} is missing from the database.
+                                    // Skipping...", &node_hash);
                                     continue;
-                                }
+                                },
                             }
                         } else {
                             //error!();
                             return None;
                         }
-                    }
+                    },
 
                     (TraceStatus::Child(i), Node::Branch(ref branch)) => {
                         if i == 0 {
@@ -968,12 +942,12 @@ where
                         }
                         self.nodes
                             .push((*branch.children[i as usize].clone()).into());
-                    }
+                    },
 
                     (_, Node::Empty) => {
                         self.nodes.pop();
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             } else {
                 return None;
@@ -984,18 +958,20 @@ where
 
 #[cfg(test)]
 mod tests {
-    use rand::distributions::Alphanumeric;
-    use rand::seq::SliceRandom;
-    use rand::{thread_rng, Rng};
-    use std::collections::{HashMap, HashSet};
-    use std::sync::Arc;
+    use std::{
+        collections::{HashMap, HashSet},
+        sync::Arc,
+    };
 
     use keccak_hash::{keccak, H256};
+    use rand::{distributions::Alphanumeric, seq::SliceRandom, thread_rng, Rng};
 
     use super::{InnerTrie, Trie};
-    use crate::db::{Database, MemoryDB};
-    use crate::error::TrieError;
-    use crate::nibbles::Nibbles;
+    use crate::{
+        db::{Database, MemoryDB},
+        error::TrieError,
+        nibbles::Nibbles,
+    };
 
     #[test]
     fn test_trie_insert() {
@@ -1121,7 +1097,8 @@ mod tests {
     }
 
     #[test]
-    /// When a database entry is missing, get_proof returns a MissingTrieNode error
+    /// When a database entry is missing, get_proof returns a MissingTrieNode
+    /// error
     fn test_trie_get_proof_corrupt() {
         let (mut trie, actual_root_hash, deleted_node_hash) = corrupt_trie();
 
