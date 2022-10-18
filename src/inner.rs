@@ -9,10 +9,11 @@ use hashbrown::{HashMap, HashSet};
 use keccak_hash::{keccak, H256};
 use rlp::{Prototype, Rlp, RlpStream};
 
+use crate::common::{Key, OwnedValue, Value};
 use crate::db::{Database, MemoryDB};
 use crate::error::TrieError;
 use crate::nibbles::Nibbles;
-use crate::node::{BranchNode, Node};
+use crate::node::{BranchNode, ExtensionNode, HashNode, Node};
 use crate::result::Result;
 use crate::trie::Trie;
 
@@ -24,11 +25,12 @@ where
     D: Database,
 {
     root: Node,
+    /// 32 byte hash of the trie's root node.
     root_hash: H256,
 
     db: Arc<D>,
 
-    // The batch of pending new nodes to write
+    /// The batch of pending new nodes to write
     cache: HashMap<Vec<u8>, Vec<u8>>,
     passing_keys: HashSet<Vec<u8>>,
     gen_keys: HashSet<Vec<u8>>,
@@ -46,7 +48,7 @@ where
     pub fn new(db: Arc<D>) -> Self {
         Self {
             root: Node::Empty,
-            root_hash: keccak(&rlp::NULL_RLP.to_vec()),
+            root_hash: keccak(&rlp::NULL_RLP),
 
             cache: HashMap::new(),
             passing_keys: HashSet::new(),
@@ -94,7 +96,8 @@ where
     D: Database,
 {
     /// Returns the value for key stored in the trie.
-    fn get(&self, key: &[u8]) -> Result<Option<Vec<u8>>> {
+    // fn get(&self, key: &[u8]) -> Result<Option<Vec<u8>>> {
+    fn get(&self, key: Key) -> Result<Option<Vec<u8>>> {
         let path = &Nibbles::from_raw(key, true);
         let result = self.get_at(&self.root, path, 0);
         if let Err(TrieError::MissingTrieNode {
@@ -116,13 +119,16 @@ where
     }
 
     /// Checks that the key is present in the trie
-    fn contains(&self, key: &[u8]) -> Result<bool> {
+    // fn contains(&self, key: &[u8]) -> Result<bool> {
+    fn contains(&self, key: Key) -> Result<bool> {
         let path = &Nibbles::from_raw(key, true);
         Ok(self.get_at(&self.root, path, 0)?.map_or(false, |_| true))
     }
 
     /// Inserts value into trie and modifies it if it exists
-    fn insert(&mut self, key: &[u8], value: &[u8]) -> Result<()> {
+    // fn insert(&mut self, key: &[u8], value: &[u8]) -> Result<()> {
+    fn insert(&mut self, key: Key, value: Value) -> Result<()> {
+        // TODO: Consider not emptying nodes when providing empty values
         if value.is_empty() {
             self.remove(key)?;
             return Ok(());
@@ -139,20 +145,21 @@ where
             err_key: _,
         }) = result
         {
-            Err(TrieError::MissingTrieNode {
+            return Err(TrieError::MissingTrieNode {
                 node_hash,
                 traversed,
                 root_hash,
                 err_key: Some(key.to_vec()),
-            })
-        } else {
-            self.root = result?;
-            Ok(())
+            });
         }
+
+        self.root = result?;
+        Ok(())
     }
 
     /// Removes any existing value for key from the trie.
-    fn remove(&mut self, key: &[u8]) -> Result<bool> {
+    // fn remove(&mut self, key: &[u8]) -> Result<bool> {
+    fn remove(&mut self, key: Key) -> Result<bool> {
         let path = &Nibbles::from_raw(key, true);
 
         let result = self.delete_at(&mut self.root.clone(), path, 0);
@@ -164,17 +171,17 @@ where
             err_key: _,
         }) = result
         {
-            Err(TrieError::MissingTrieNode {
+            return Err(TrieError::MissingTrieNode {
                 node_hash,
                 traversed,
                 root_hash,
                 err_key: Some(key.to_vec()),
-            })
-        } else {
-            let (n, removed) = result?;
-            self.root = n;
-            Ok(removed)
+            });
         }
+
+        let (n, removed) = result?;
+        self.root = n;
+        Ok(removed)
     }
 
     /// Saves all the nodes in the db, clears the cache data, recalculates the root.
@@ -190,7 +197,7 @@ where
     /// If the trie does not contain a value for key, the returned proof contains all
     /// nodes of the longest existing prefix of the key (at least the root node), ending
     /// with the node that proves the absence of the key.
-    fn get_proof(&mut self, key: &[u8]) -> Result<Vec<Vec<u8>>> {
+    fn get_proof(&mut self, key: Key) -> Result<Vec<Vec<u8>>> {
         let key_path = &Nibbles::from_raw(key, true);
         let result = self.get_path_at(&self.root, key_path, 0);
 
@@ -201,33 +208,37 @@ where
             err_key: _,
         }) = result
         {
-            Err(TrieError::MissingTrieNode {
+            return Err(TrieError::MissingTrieNode {
                 node_hash,
                 traversed,
                 root_hash,
                 err_key: Some(key.to_vec()),
-            })
-        } else {
-            let mut path = result?;
-            match self.root {
-                Node::Empty => {}
-                _ => path.push(self.root.clone()),
-            }
-            Ok(path
-                .into_iter()
-                .rev()
-                .map(|n| self.encode_raw(&n))
-                .collect())
+            });
         }
+
+        let mut path = result?;
+        match self.root {
+            Node::Empty => {}
+            _ => path.push(self.root.clone()),
+        }
+
+        Ok(path
+            .into_iter()
+            .rev()
+            .map(|n| self.encode_raw(&n))
+            .collect())
     }
 
     /// return value if key exists, None if key not exist, Error if proof is wrong
+    ///
+    /// Verifies whether a value exists for a key within the trie and returs its associated value
+    /// if it exists, none if it doesn't or an error if the proof is invalid
     fn verify_proof(
         &self,
         root_hash: H256,
         key: &[u8],
         proof: Vec<Vec<u8>>,
-    ) -> Result<Option<Vec<u8>>> {
+    ) -> Result<Option<OwnedValue>> {
         let proof_db = Arc::new(MemoryDB::new(true));
         for node_encoded in proof.into_iter() {
             let hash = keccak(&node_encoded);
@@ -237,6 +248,7 @@ where
             }
         }
 
+        // TODO: consider calling contains instead of get
         let trie = InnerTrie::new(proof_db).at_root(root_hash);
         trie.get(key).or(Err(TrieError::InvalidProof))
     }
@@ -294,7 +306,11 @@ where
         path: &Nibbles,
         path_index: usize,
     ) -> Result<Option<Vec<u8>>> {
+        //
+        //
+        //
         let partial = &path.offset(path_index);
+
         match source_node {
             Node::Empty => Ok(None),
             Node::Leaf(leaf) => {
@@ -315,29 +331,78 @@ where
                 }
             }
             Node::Extension(extension) => {
-                let extension = extension;
+                //
+                self.get_extension_node(extension, path, path_index)
+                //
 
-                let prefix = &extension.prefix;
-                let match_len = partial.common_prefix(prefix);
-                if match_len == prefix.len() {
-                    self.get_at(&extension.node, path, path_index + match_len)
-                } else {
-                    Ok(None)
-                }
+                // let extension = extension;
+                //
+                // let prefix = &extension.prefix;
+                // let match_len = partial.common_prefix(prefix);
+                // if match_len == prefix.len() {
+                //     self.get_at(&extension.node, path, path_index + match_len)
+                // } else {
+                //     Ok(None)
+                // }
             }
+
             Node::Hash(hash_node) => {
-                let node_hash = hash_node.hash;
-                let node =
-                    self.recover_from_db(node_hash)?
-                        .ok_or_else(|| TrieError::MissingTrieNode {
-                            node_hash,
-                            traversed: Some(path.slice(0, path_index)),
-                            root_hash: Some(self.root_hash),
-                            err_key: None,
-                        })?;
-                self.get_at(&node, path, path_index)
+                //
+                //
+                self.get_hash_node(hash_node, path, path_index)
+                //
+                //
+                // let node_hash = hash_node.hash;
+                // let node =
+                //     self.recover_from_db(node_hash)?
+                //         .ok_or_else(|| TrieError::MissingTrieNode {
+                //             node_hash,
+                //             traversed: Some(path.slice(0, path_index)),
+                //             root_hash: Some(self.root_hash),
+                //             err_key: None,
+                //         })?;
+                //
+                // self.get_at(&node, path, path_index)
             }
         }
+    }
+
+    fn get_extension_node(
+        &self,
+        node: &ExtensionNode,
+        path: &Nibbles,
+        path_index: usize,
+    ) -> Result<Option<Vec<u8>>> {
+        let extension = node;
+
+        let partial = &path.offset(path_index);
+
+        let prefix = &extension.prefix;
+        let match_len = partial.common_prefix(prefix);
+        if match_len == prefix.len() {
+            self.get_at(&extension.node, path, path_index + match_len)
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn get_hash_node(
+        &self,
+        node: &HashNode,
+        path: &Nibbles,
+        path_index: usize,
+    ) -> Result<Option<Vec<u8>>> {
+        let node_hash = node.hash;
+        let node = self
+            .recover_from_db(node_hash)?
+            .ok_or_else(|| TrieError::MissingTrieNode {
+                node_hash,
+                traversed: Some(path.slice(0, path_index)),
+                root_hash: Some(self.root_hash),
+                err_key: None,
+            })?;
+
+        self.get_at(&node, path, path_index)
     }
 
     fn insert_at(
@@ -363,10 +428,10 @@ where
                 };
 
                 let n = Node::from_leaf(old_partial.offset(match_index + 1), leaf.value.clone());
-                branch.insert(old_partial.at(match_index), n);
+                branch.insert(old_partial.at(match_index), n)?;
 
                 let n = Node::from_leaf(partial.offset(match_index + 1), value);
-                branch.insert(partial.at(match_index), n);
+                branch.insert(partial.at(match_index), n)?;
 
                 if match_index == 0 {
                     return Ok(Node::Branch(branch));
@@ -404,6 +469,7 @@ where
                         children: Default::default(),
                         value: None,
                     };
+
                     branch.insert(
                         prefix.at(0),
                         if prefix.len() == 1 {
@@ -411,7 +477,7 @@ where
                         } else {
                             Node::from_extension(prefix.offset(1), *sub_node)
                         },
-                    );
+                    )?;
 
                     let mut node = Node::Branch(branch);
 
@@ -434,6 +500,7 @@ where
 
                 Ok(Node::Extension(ext.clone()))
             }
+
             Node::Hash(hash_node) => {
                 let node_hash = hash_node.hash;
                 self.passing_keys.insert(node_hash.as_bytes().to_vec());
@@ -445,6 +512,7 @@ where
                             root_hash: Some(self.root_hash),
                             err_key: None,
                         })?;
+
                 self.insert_at(&mut node, path, path_index, value)
             }
         }

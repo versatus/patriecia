@@ -168,6 +168,9 @@ mod tests {
     #[test]
     fn test_nibble() {
         let n = Nibbles::from_raw(b"key1", true);
+
+        dbg!(&n);
+
         let compact = n.encode_compact();
         let n2 = Nibbles::from_compact(&compact);
         let (raw, is_leaf) = n2.encode_raw();
