@@ -32,13 +32,13 @@ impl Nibbles {
 
         let mut is_leaf = false;
         match flag >> 4 {
-            0x0 => {}
+            0x0 => {},
             0x1 => hex.push(flag % 16),
             0x2 => is_leaf = true,
             0x3 => {
                 is_leaf = true;
                 hex.push(flag % 16);
-            }
+            },
             _ => panic!("invalid data"),
         }
 
@@ -168,9 +168,6 @@ mod tests {
     #[test]
     fn test_nibble() {
         let n = Nibbles::from_raw(b"key1", true);
-
-        dbg!(&n);
-
         let compact = n.encode_compact();
         let n2 = Nibbles::from_compact(&compact);
         let (raw, is_leaf) = n2.encode_raw();
