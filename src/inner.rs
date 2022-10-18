@@ -311,7 +311,11 @@ where
         path: &Nibbles,
         path_index: usize,
     ) -> Result<Option<Vec<u8>>> {
+        //
+        //
+        //
         let partial = &path.offset(path_index);
+
         match source_node {
             Node::Empty => Ok(None),
             Node::Leaf(leaf) => {
