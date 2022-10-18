@@ -88,6 +88,11 @@ where
         self.db.len().unwrap_or(0)
     }
 
+    /// Returns all values stored on the trie.
+    pub fn values(&self) -> Result<Vec<(Vec<u8>, Vec<u8>)>> {
+        Ok(self.iter().collect())
+    }
+
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -186,11 +191,6 @@ where
     /// root. Returns the root hash of the trie.
     fn root_hash(&mut self) -> Result<H256> {
         self.commit()
-    }
-
-    /// Returns all values stored on the trie.
-    fn values(&self) -> Result<Vec<u8>> {
-        Ok(self.iter().collect())
     }
 
     /// Prove constructs a merkle proof for key. The result contains all encoded
