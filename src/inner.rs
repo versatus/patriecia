@@ -81,11 +81,9 @@ where
         }
     }
 
-    /// Returns the number of nodes stored in the underlying database, including
-    /// the root node.
+    /// Returns the number of nodes stored in the trie.
     pub fn len(&self) -> usize {
-        // NOTE; this count includes the root node
-        self.db.len().unwrap_or(0)
+        self.iter().count()
     }
 
     /// Returns all values stored on the trie.
