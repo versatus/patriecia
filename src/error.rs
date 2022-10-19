@@ -3,7 +3,7 @@ use thiserror::Error;
 use keccak_hash::H256;
 use rlp::DecoderError;
 
-use crate::nibbles::Nibbles;
+use crate::{nibbles::Nibbles, node::NodeError};
 
 #[derive(Error, Debug, Eq, PartialEq)]
 pub enum TrieError {
@@ -26,6 +26,9 @@ pub enum TrieError {
 
     #[error("decoder error: {0}")]
     Decoder(#[from] DecoderError),
+
+    #[error("node error: {0}")]
+    NodeError(#[from] NodeError),
 }
 
 #[derive(Error, Debug)]
