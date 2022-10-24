@@ -91,11 +91,6 @@ where
         Ok(self.iter().collect())
     }
 
-    /// Returns all values stored on the trie.
-    pub fn values(&self) -> Result<Vec<(Vec<u8>, Vec<u8>)>> {
-        Ok(self.iter().collect())
-    }
-
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
