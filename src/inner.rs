@@ -94,6 +94,11 @@ where
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
+
+    /// Returns a copy of the underlying backing database
+    pub fn db(&self) -> Arc<D> {
+        self.db.clone()
+    }
 }
 
 impl<D> Trie<D> for InnerTrie<D>
