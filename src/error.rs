@@ -1,11 +1,10 @@
-use thiserror::Error;
-
 use keccak_hash::H256;
 use rlp::DecoderError;
+use thiserror::Error;
 
 use crate::{nibbles::Nibbles, node::NodeError};
 
-#[derive(Error, Debug, Eq, PartialEq)]
+#[derive(Error, Debug, Clone, Eq, PartialEq)]
 pub enum TrieError {
     #[error("invalid data")]
     InvalidData,
@@ -31,5 +30,5 @@ pub enum TrieError {
     NodeError(#[from] NodeError),
 }
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Clone)]
 pub enum MemDBError {}
