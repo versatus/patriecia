@@ -7,6 +7,7 @@ pub mod result;
 pub mod trie;
 
 pub mod common;
+
 pub(crate) mod nibbles;
 pub(crate) mod node;
 

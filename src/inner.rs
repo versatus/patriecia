@@ -74,6 +74,7 @@ where
 
     pub fn iter(&self) -> TrieIterator<D> {
         let nodes = vec![(self.root.clone()).into()];
+
         TrieIterator {
             trie: self,
             nibble: Nibbles::from_raw(&[], false),
@@ -81,9 +82,9 @@ where
         }
     }
 
-    /// Returns the number of nodes stored in the trie.
+    /// Returns the number of nodes stored in the backing database.
     pub fn len(&self) -> usize {
-        self.iter().count()
+        self.db.len().unwrap_or_default()
     }
 
     /// Returns all values stored on the trie.
@@ -109,6 +110,7 @@ where
     fn get(&self, key: Key) -> Result<Option<Vec<u8>>> {
         let path = &Nibbles::from_raw(key, true);
         let result = self.get_at(&self.root, path, 0);
+
         if let Err(TrieError::MissingTrieNode {
             node_hash,
             traversed,
@@ -226,7 +228,7 @@ where
 
         let mut path = result?;
         match self.root {
-            Node::Empty => {},
+            Node::Empty => {}
             _ => path.push(self.root.clone()),
         }
 
@@ -270,7 +272,7 @@ where
                 let hash = keccak(&encoded);
                 self.cache.insert(hash.as_bytes().to_vec(), encoded);
                 hash
-            },
+            }
         };
 
         let mut keys = Vec::with_capacity(self.cache.len());
@@ -298,9 +300,9 @@ where
         self.root_hash = root_hash;
         self.gen_keys.clear();
         self.passing_keys.clear();
-        self.root = self
-            .recover_from_db(root_hash)?
-            .expect("The root that was just created is missing");
+        self.root = self.recover_from_db(root_hash)?.ok_or(err)?;
+        // .expect("The root that was just created is missing");
+
         Ok(root_hash)
     }
 }
@@ -325,7 +327,7 @@ where
                 } else {
                     Ok(None)
                 }
-            },
+            }
             Node::Branch(branch) => {
                 let borrow_branch = branch;
 
@@ -335,7 +337,7 @@ where
                     let index = partial.at(0);
                     self.get_at(&borrow_branch.children[index], path, path_index + 1)
                 }
-            },
+            }
             Node::Extension(extension) => self.get_extension_node(extension, path, path_index),
             Node::Hash(hash_node) => self.get_hash_node(hash_node, path, path_index),
         }
@@ -416,7 +418,7 @@ where
                     partial.slice(0, match_index),
                     Node::Branch(branch),
                 ))
-            },
+            }
             Node::Branch(ref mut branch) => {
                 let mut borrow_branch = branch.borrow_mut();
 
@@ -430,7 +432,7 @@ where
                 *borrow_branch.children[partial.at(0)] = new_child;
 
                 Ok(Node::Branch(branch.clone()))
-            },
+            }
             Node::Extension(ext) => {
                 let mut borrow_ext = ext.borrow_mut();
 
@@ -473,7 +475,7 @@ where
                 *borrow_ext.node = new_node;
 
                 Ok(Node::Extension(ext.clone()))
-            },
+            }
 
             Node::Hash(hash_node) => {
                 let node_hash = hash_node.hash;
@@ -488,7 +490,7 @@ where
                         })?;
 
                 self.insert_at(&mut node, path, path_index, value)
-            },
+            }
         }
     }
 
@@ -506,7 +508,7 @@ where
                     return Ok((Node::Empty, true));
                 }
                 Ok((Node::Leaf(leaf.clone()), false))
-            },
+            }
             Node::Branch(branch) => {
                 let mut borrow_branch = branch.borrow_mut();
 
@@ -524,7 +526,7 @@ where
                 }
 
                 Ok((Node::Branch(branch.clone()), deleted))
-            },
+            }
             Node::Extension(ext) => {
                 let borrow_ext = ext.borrow_mut();
 
@@ -543,7 +545,7 @@ where
                 } else {
                     Ok((Node::Extension(ext.clone()), false))
                 }
-            },
+            }
             Node::Hash(hash_node) => {
                 let hash = hash_node.hash;
                 self.passing_keys.insert(hash.as_bytes().to_vec());
@@ -558,7 +560,7 @@ where
                         })?;
 
                 self.delete_at(&mut node, path, path_index)
-            },
+            }
         }?;
 
         if deleted {
@@ -601,7 +603,7 @@ where
                 } else {
                     Ok(Node::Branch(branch.clone()))
                 }
-            },
+            }
             Node::Extension(ref ext) => {
                 let borrow_ext = ext;
 
@@ -613,11 +615,11 @@ where
                         let new_prefix = prefix.join(&borrow_sub_ext.prefix);
                         let new_n = Node::from_extension(new_prefix, *borrow_sub_ext.node.clone());
                         self.degenerate(new_n)
-                    },
+                    }
                     Node::Leaf(leaf) => {
                         let new_prefix = prefix.join(&leaf.key);
                         Ok(Node::from_leaf(new_prefix, leaf.value.clone()))
-                    },
+                    }
                     // try again after recovering node from the db.
                     Node::Hash(hash_node) => {
                         let node_hash = hash_node.hash;
@@ -634,10 +636,10 @@ where
 
                         let n = Node::from_extension(borrow_ext.prefix.clone(), new_node);
                         self.degenerate(n)
-                    },
+                    }
                     _ => Ok(Node::Extension(ext.clone())),
                 }
-            },
+            }
             _ => Ok(n),
         }
     }
@@ -667,7 +669,7 @@ where
                     let node = &borrow_branch.children[partial.at(0)];
                     self.get_path_at(node, path, path_index + 1)
                 }
-            },
+            }
             Node::Extension(ext) => {
                 let borrow_ext = ext;
 
@@ -679,7 +681,7 @@ where
                 } else {
                     Ok(vec![])
                 }
-            },
+            }
             Node::Hash(hash_node) => {
                 let node_hash = hash_node.hash;
                 let n = self
@@ -693,7 +695,7 @@ where
                 let mut rest = self.get_path_at(&n, path, path_index)?;
                 rest.push(n);
                 Ok(rest)
-            },
+            }
         }
     }
 
@@ -725,7 +727,7 @@ where
                 stream.append(&leaf.key.encode_compact());
                 stream.append(&leaf.value);
                 stream.out().to_vec()
-            },
+            }
             Node::Branch(branch) => {
                 let borrow_branch = branch;
 
@@ -743,7 +745,7 @@ where
                     None => stream.append_empty_data(),
                 };
                 stream.out().to_vec()
-            },
+            }
             Node::Extension(ext) => {
                 let borrow_ext = ext;
 
@@ -754,7 +756,7 @@ where
                     EncodedNode::Inline(data) => stream.append_raw(&data, 1),
                 };
                 stream.out().to_vec()
-            },
+            }
             Node::Hash(_hash) => unreachable!(),
         }
     }
@@ -775,7 +777,7 @@ where
 
                     Ok(Node::from_extension(key, n))
                 }
-            },
+            }
             Prototype::List(17) => {
                 let mut nodes: [Box<Node>; 16] = Default::default();
                 #[allow(clippy::needless_range_loop)]
@@ -794,7 +796,7 @@ where
                 };
 
                 Ok(Node::from_branch(nodes, value))
-            },
+            }
             _ => {
                 if r.is_data() && r.size() == HASHED_LENGTH {
                     let hash = H256::from_slice(r.data()?);
@@ -802,7 +804,7 @@ where
                 } else {
                     Err(TrieError::InvalidData)
                 }
-            },
+            }
         }
     }
 
@@ -883,30 +885,30 @@ where
                             Node::Leaf(ref leaf) => {
                                 let cur_len = self.nibble.len();
                                 self.nibble.truncate(cur_len - leaf.key.len());
-                            },
+                            }
 
                             Node::Extension(ref ext) => {
                                 let cur_len = self.nibble.len();
                                 self.nibble.truncate(cur_len - ext.prefix.len());
-                            },
+                            }
 
                             Node::Branch(_) => {
                                 self.nibble.pop();
-                            },
-                            _ => {},
+                            }
+                            _ => {}
                         }
                         self.nodes.pop();
-                    },
+                    }
 
                     (TraceStatus::Doing, Node::Extension(ref ext)) => {
                         self.nibble.extend(&ext.prefix);
                         self.nodes.push((*ext.node.clone()).into());
-                    },
+                    }
 
                     (TraceStatus::Doing, Node::Leaf(ref leaf)) => {
                         self.nibble.extend(&leaf.key);
                         return Some((self.nibble.encode_raw().0, leaf.value.clone()));
-                    },
+                    }
 
                     (TraceStatus::Doing, Node::Branch(ref branch)) => {
                         let value_option = branch.value.clone();
@@ -915,7 +917,7 @@ where
                         } else {
                             continue;
                         }
-                    },
+                    }
 
                     (TraceStatus::Doing, Node::Hash(ref hash_node)) => {
                         let node_hash = hash_node.hash;
@@ -928,13 +930,13 @@ where
                                     // warn!("Trie node with hash {:?} is missing from the database.
                                     // Skipping...", &node_hash);
                                     continue;
-                                },
+                                }
                             }
                         } else {
                             //error!();
                             return None;
                         }
-                    },
+                    }
 
                     (TraceStatus::Child(i), Node::Branch(ref branch)) => {
                         if i == 0 {
@@ -945,12 +947,12 @@ where
                         }
                         self.nodes
                             .push((*branch.children[i as usize].clone()).into());
-                    },
+                    }
 
                     (_, Node::Empty) => {
                         self.nodes.pop();
-                    },
-                    _ => {},
+                    }
+                    _ => {}
                 }
             } else {
                 return None;
