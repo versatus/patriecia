@@ -159,3 +159,122 @@ where
         }
     }
 }
+
+#[derive(Debug)]
+pub struct OwnedTrieIterator<D>
+where
+    D: Database,
+{
+    trie: InnerTrie<D>,
+    nibble: Nibbles,
+    nodes: Vec<TraceNode>,
+}
+
+impl<D> OwnedTrieIterator<D>
+where
+    D: Database,
+{
+    pub fn new(trie: InnerTrie<D>) -> Self {
+        let nodes = vec![trie.root().into()];
+
+        Self {
+            trie,
+            nibble: Nibbles::from_raw(&[], false),
+            nodes,
+        }
+    }
+}
+
+impl<D> Iterator for OwnedTrieIterator<D>
+where
+    D: Database,
+{
+    type Item = (Vec<u8>, Vec<u8>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let mut now = self.nodes.last().cloned();
+            if let Some(ref mut now) = now {
+                self.nodes.last_mut().unwrap().advance();
+
+                match (now.status.clone(), &now.node) {
+                    (TraceStatus::End, node) => {
+                        match *node {
+                            Node::Leaf(ref leaf) => {
+                                let cur_len = self.nibble.len();
+                                self.nibble.truncate(cur_len - leaf.key.len());
+                            }
+
+                            Node::Extension(ref ext) => {
+                                let cur_len = self.nibble.len();
+                                self.nibble.truncate(cur_len - ext.prefix.len());
+                            }
+
+                            Node::Branch(_) => {
+                                self.nibble.pop();
+                            }
+                            _ => {}
+                        }
+                        self.nodes.pop();
+                    }
+
+                    (TraceStatus::Doing, Node::Extension(ref ext)) => {
+                        self.nibble.extend(&ext.prefix);
+                        self.nodes.push((*ext.node.clone()).into());
+                    }
+
+                    (TraceStatus::Doing, Node::Leaf(ref leaf)) => {
+                        self.nibble.extend(&leaf.key);
+                        return Some((self.nibble.encode_raw().0, leaf.value.clone()));
+                    }
+
+                    (TraceStatus::Doing, Node::Branch(ref branch)) => {
+                        let value_option = branch.value.clone();
+                        if let Some(value) = value_option {
+                            return Some((self.nibble.encode_raw().0, value));
+                        } else {
+                            continue;
+                        }
+                    }
+
+                    (TraceStatus::Doing, Node::Hash(ref hash_node)) => {
+                        let node_hash = hash_node.hash;
+                        if let Ok(n) = self.trie.recover_from_db(node_hash) {
+                            self.nodes.pop();
+                            match n {
+                                Some(node) => self.nodes.push(node.into()),
+                                None => {
+                                    // TODO: add proper instrumentation
+                                    // warn!("Trie node with hash {:?} is missing from the database.
+                                    // Skipping...", &node_hash);
+                                    continue;
+                                }
+                            }
+                        } else {
+                            //error!();
+                            return None;
+                        }
+                    }
+
+                    (TraceStatus::Child(i), Node::Branch(ref branch)) => {
+                        if i == 0 {
+                            self.nibble.push(0);
+                        } else {
+                            self.nibble.pop();
+                            self.nibble.push(i);
+                        }
+                        self.nodes
+                            .push((*branch.children[i as usize].clone()).into());
+                    }
+
+                    (_, Node::Empty) => {
+                        self.nodes.pop();
+                    }
+                    _ => {}
+                }
+            } else {
+                return None;
+            }
+        }
+    }
+}
