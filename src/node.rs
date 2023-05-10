@@ -11,8 +11,9 @@ pub type Result<T> = std::result::Result<T, NodeError>;
 pub enum NodeError {
     #[error("failed to insert node: {0}")]
     InvalidNodeInsert(String),
-    // #[error("unknown error ocurred: {0}")]
-    // Other(String),
+
+    #[error("unknown error ocurred: {0}")]
+    Other(String),
 }
 
 #[derive(Debug, Clone, Default)]
@@ -41,6 +42,7 @@ impl Node {
             prefix,
             node: Box::new(node),
         };
+
         Node::Extension(ext)
     }
 

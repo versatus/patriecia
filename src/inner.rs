@@ -16,6 +16,7 @@ use crate::{
     node::{BranchNode, ExtensionNode, HashNode, Node},
     result::Result,
     trie::Trie,
+    TrieIterator,
 };
 
 const HASHED_LENGTH: usize = 32;
@@ -59,6 +60,10 @@ where
         }
     }
 
+    pub fn root(&self) -> Node {
+        self.root.clone()
+    }
+
     pub fn at_root(&self, root_hash: H256) -> Self {
         Self {
             root: Node::from_hash(root_hash),
@@ -73,13 +78,7 @@ where
     }
 
     pub fn iter(&self) -> TrieIterator<D> {
-        let nodes = vec![(self.root.clone()).into()];
-
-        TrieIterator {
-            trie: self,
-            nibble: Nibbles::from_raw(&[], false),
-            nodes,
-        }
+        TrieIterator::new(self)
     }
 
     /// Returns the number of nodes stored in the backing database.
@@ -300,8 +299,9 @@ where
         self.root_hash = root_hash;
         self.gen_keys.clear();
         self.passing_keys.clear();
-        self.root = self.recover_from_db(root_hash)?.ok_or(err)?;
-        // .expect("The root that was just created is missing");
+        self.root = self
+            .recover_from_db(root_hash)?
+            .expect("The root that was just created is missing");
 
         Ok(root_hash)
     }
@@ -821,146 +821,6 @@ where
     }
 }
 
-#[derive(Clone, Debug)]
-enum TraceStatus {
-    Start,
-    Doing,
-    Child(u8),
-    End,
-}
-
-#[derive(Clone, Debug)]
-struct TraceNode {
-    node: Node,
-    status: TraceStatus,
-}
-
-impl From<Node> for TraceNode {
-    fn from(node: Node) -> TraceNode {
-        TraceNode {
-            node,
-            status: TraceStatus::Start,
-        }
-    }
-}
-
-impl TraceNode {
-    fn advance(&mut self) {
-        self.status = match &self.status {
-            TraceStatus::Start => TraceStatus::Doing,
-            TraceStatus::Doing => match self.node {
-                Node::Branch(_) => TraceStatus::Child(0),
-                _ => TraceStatus::End,
-            },
-            TraceStatus::Child(i) if *i < 15 => TraceStatus::Child(i + 1),
-            _ => TraceStatus::End,
-        }
-    }
-}
-
-pub struct TrieIterator<'a, D>
-where
-    D: Database,
-{
-    trie: &'a InnerTrie<D>,
-    nibble: Nibbles,
-    nodes: Vec<TraceNode>,
-}
-
-impl<'a, D> Iterator for TrieIterator<'a, D>
-where
-    D: Database,
-{
-    type Item = (Vec<u8>, Vec<u8>);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            let mut now = self.nodes.last().cloned();
-            if let Some(ref mut now) = now {
-                self.nodes.last_mut().unwrap().advance();
-
-                match (now.status.clone(), &now.node) {
-                    (TraceStatus::End, node) => {
-                        match *node {
-                            Node::Leaf(ref leaf) => {
-                                let cur_len = self.nibble.len();
-                                self.nibble.truncate(cur_len - leaf.key.len());
-                            }
-
-                            Node::Extension(ref ext) => {
-                                let cur_len = self.nibble.len();
-                                self.nibble.truncate(cur_len - ext.prefix.len());
-                            }
-
-                            Node::Branch(_) => {
-                                self.nibble.pop();
-                            }
-                            _ => {}
-                        }
-                        self.nodes.pop();
-                    }
-
-                    (TraceStatus::Doing, Node::Extension(ref ext)) => {
-                        self.nibble.extend(&ext.prefix);
-                        self.nodes.push((*ext.node.clone()).into());
-                    }
-
-                    (TraceStatus::Doing, Node::Leaf(ref leaf)) => {
-                        self.nibble.extend(&leaf.key);
-                        return Some((self.nibble.encode_raw().0, leaf.value.clone()));
-                    }
-
-                    (TraceStatus::Doing, Node::Branch(ref branch)) => {
-                        let value_option = branch.value.clone();
-                        if let Some(value) = value_option {
-                            return Some((self.nibble.encode_raw().0, value));
-                        } else {
-                            continue;
-                        }
-                    }
-
-                    (TraceStatus::Doing, Node::Hash(ref hash_node)) => {
-                        let node_hash = hash_node.hash;
-                        if let Ok(n) = self.trie.recover_from_db(node_hash) {
-                            self.nodes.pop();
-                            match n {
-                                Some(node) => self.nodes.push(node.into()),
-                                None => {
-                                    // TODO: add proper instrumentation
-                                    // warn!("Trie node with hash {:?} is missing from the database.
-                                    // Skipping...", &node_hash);
-                                    continue;
-                                }
-                            }
-                        } else {
-                            //error!();
-                            return None;
-                        }
-                    }
-
-                    (TraceStatus::Child(i), Node::Branch(ref branch)) => {
-                        if i == 0 {
-                            self.nibble.push(0);
-                        } else {
-                            self.nibble.pop();
-                            self.nibble.push(i);
-                        }
-                        self.nodes
-                            .push((*branch.children[i as usize].clone()).into());
-                    }
-
-                    (_, Node::Empty) => {
-                        self.nodes.pop();
-                    }
-                    _ => {}
-                }
-            } else {
-                return None;
-            }
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::{
@@ -1361,7 +1221,9 @@ mod tests {
     fn iterator_trie() {
         let memdb = Arc::new(MemoryDB::new(true));
         let root1: H256;
+
         let mut kv = HashMap::new();
+
         kv.insert(b"test".to_vec(), b"test".to_vec());
         kv.insert(b"test1".to_vec(), b"test1".to_vec());
         kv.insert(b"test11".to_vec(), b"test2".to_vec());
@@ -1371,22 +1233,28 @@ mod tests {
         kv.insert(b"test2".to_vec(), b"test6".to_vec());
         kv.insert(b"test23".to_vec(), b"test7".to_vec());
         kv.insert(b"test9".to_vec(), b"test8".to_vec());
+
         {
             let mut trie = InnerTrie::new(memdb.clone());
+
             let mut kv = kv.clone();
+
             kv.iter().for_each(|(k, v)| {
                 trie.insert(k, v).unwrap();
             });
+
             root1 = trie.root_hash().unwrap();
 
             trie.iter()
                 .for_each(|(k, v)| assert_eq!(kv.remove(&k).unwrap(), v));
+
             assert!(kv.is_empty());
         }
 
         {
             let mut trie = InnerTrie::new(memdb.clone());
             let mut kv2 = HashMap::new();
+
             kv2.insert(b"test".to_vec(), b"test11".to_vec());
             kv2.insert(b"test1".to_vec(), b"test12".to_vec());
             kv2.insert(b"test14".to_vec(), b"test13".to_vec());
