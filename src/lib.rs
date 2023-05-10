@@ -7,6 +7,9 @@ pub mod result;
 pub mod trie;
 
 pub mod common;
+mod trie_iterator;
+pub use trie_iterator::*;
+
 pub(crate) mod nibbles;
 pub(crate) mod node;
 

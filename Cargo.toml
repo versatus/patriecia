@@ -13,6 +13,7 @@ log = "0.4.16"
 parking_lot = "0.12"
 rlp = "0.5.1"
 thiserror = "1.0.32"
+bytes = { version = "1.4.0", features = ["serde"] }
 
 [dev-dependencies]
 rand = "0.8.3"

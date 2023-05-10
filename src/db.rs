@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use parking_lot::RwLock;
 
+use crate::common::{Key, OwnedKey, OwnedValue};
 use crate::error::MemDBError;
 
 /// "DB" defines the "trait" of trie and database interaction.
@@ -14,16 +15,20 @@ use crate::error::MemDBError;
 pub trait Database: Send + Sync + Clone + Default + std::fmt::Debug {
     type Error: Error;
 
-    fn get(&self, key: &[u8]) -> Result<Option<Vec<u8>>, Self::Error>;
+    fn get(&self, key: Key) -> Result<Option<OwnedValue>, Self::Error>;
 
     /// Insert data into the cache.
-    fn insert(&self, key: &[u8], value: Vec<u8>) -> Result<(), Self::Error>;
+    fn insert(&self, key: Key, value: Vec<u8>) -> Result<(), Self::Error>;
 
     /// Remove data with given key.
-    fn remove(&self, key: &[u8]) -> Result<(), Self::Error>;
+    fn remove(&self, key: Key) -> Result<(), Self::Error>;
 
     /// Insert a batch of data into the cache.
-    fn insert_batch(&self, keys: Vec<Vec<u8>>, values: Vec<Vec<u8>>) -> Result<(), Self::Error> {
+    fn insert_batch(
+        &self,
+        keys: Vec<OwnedKey>,
+        values: Vec<OwnedValue>,
+    ) -> Result<(), Self::Error> {
         for i in 0..keys.len() {
             let key = &keys[i];
             let value = values[i].clone();
@@ -46,6 +51,8 @@ pub trait Database: Send + Sync + Clone + Default + std::fmt::Debug {
 
     fn len(&self) -> Result<usize, Self::Error>;
 
+    fn values(&self) -> Result<Vec<(Vec<u8>, Vec<u8>)>, Self::Error>;
+
     fn is_empty(&self) -> Result<bool, Self::Error>;
 }
 
@@ -53,7 +60,7 @@ pub trait Database: Send + Sync + Clone + Default + std::fmt::Debug {
 pub struct MemoryDB {
     // If "light" is true, the data is deleted from the database at the time of submission.
     light: bool,
-    storage: Arc<RwLock<HashMap<Vec<u8>, Vec<u8>>>>,
+    storage: Arc<RwLock<HashMap<Vec<u8>, OwnedValue>>>,
 }
 
 impl MemoryDB {
@@ -65,10 +72,18 @@ impl MemoryDB {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum NodeType {
+    Leaf,
+    Extension,
+    Branch,
+    HashNode,
+}
+
 impl Database for MemoryDB {
     type Error = MemDBError;
 
-    fn get(&self, key: &[u8]) -> Result<Option<Vec<u8>>, Self::Error> {
+    fn get(&self, key: &[u8]) -> Result<Option<OwnedValue>, Self::Error> {
         if let Some(value) = self.storage.read().get(key) {
             Ok(Some(value.clone()))
         } else {
@@ -76,7 +91,7 @@ impl Database for MemoryDB {
         }
     }
 
-    fn insert(&self, key: &[u8], value: Vec<u8>) -> Result<(), Self::Error> {
+    fn insert(&self, key: Key, value: OwnedValue) -> Result<(), Self::Error> {
         self.storage.write().insert(key.to_vec(), value);
         Ok(())
     }
@@ -98,6 +113,18 @@ impl Database for MemoryDB {
 
     fn is_empty(&self) -> Result<bool, Self::Error> {
         Ok(self.storage.try_read().unwrap().is_empty())
+    }
+
+    fn values(&self) -> Result<Vec<(Vec<u8>, OwnedValue)>, Self::Error> {
+        let mut values = Vec::new();
+
+        if let Some(handle) = self.storage.try_read() {
+            for (k, v) in handle.iter() {
+                values.push((k.clone(), v.clone()));
+            }
+        }
+
+        Ok(values)
     }
 }
 
