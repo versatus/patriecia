@@ -6,8 +6,8 @@ use crate::{nibbles::Nibbles, node::NodeError};
 
 #[derive(Error, Debug, Clone, Eq, PartialEq)]
 pub enum TrieError {
-    #[error("invalid data")]
-    InvalidData,
+    #[error("invalid data: {0}")]
+    InvalidData(String),
 
     #[error("invalid proof")]
     InvalidProof,
