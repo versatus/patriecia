@@ -165,8 +165,6 @@ where
 
         self.root = result?;
 
-        self.commit()?;
-
         Ok(())
     }
 
@@ -193,8 +191,6 @@ where
 
         let (n, removed) = result?;
         self.root = n;
-
-        self.commit()?;
 
         Ok(removed)
     }
