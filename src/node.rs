@@ -1,4 +1,5 @@
 use keccak_hash::H256;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::{common::BRANCHING_FACTOR, nibbles::Nibbles};
@@ -6,6 +7,22 @@ use crate::{common::BRANCHING_FACTOR, nibbles::Nibbles};
 pub type Link = Box<Node>;
 
 pub type Result<T> = std::result::Result<T, NodeError>;
+
+fn serialize_bytes<S>(data: &[u8], serializer: S) -> std::result::Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    serializer.serialize_str(&hex::encode(data))
+}
+
+fn deserialize_bytes<'de, D>(deserializer: D) -> std::result::Result<Vec<u8>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    let data = hex::decode(s).map_err(serde::de::Error::custom)?;
+    Ok(data)
+}
 
 #[derive(Error, Debug, Clone, Eq, PartialEq)]
 pub enum NodeError {
@@ -16,7 +33,7 @@ pub enum NodeError {
     Other(String),
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub enum Node {
     #[default]
     Empty,
@@ -52,13 +69,17 @@ impl Node {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LeafNode {
     pub key: Nibbles,
+    #[serde(
+        serialize_with = "serialize_bytes",
+        deserialize_with = "deserialize_bytes"
+    )]
     pub value: Vec<u8>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BranchNode {
     pub children: [Link; BRANCHING_FACTOR],
     pub value: Option<Vec<u8>>,
@@ -87,13 +108,13 @@ impl BranchNode {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct ExtensionNode {
     pub prefix: Nibbles,
     pub node: Link,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HashNode {
     pub hash: H256,
 }

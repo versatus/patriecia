@@ -1,12 +1,14 @@
+use std::fmt::{self, Formatter};
+use std::sync::Arc;
 /// Adapted from https://github.com/carver/eth-trie.rs which is a fork of https://github.com/citahub/cita-trie
 /// Beware there's a significant amount of TODOs scattered around the file,
 /// these will be addressed in due time.
-use std::borrow::BorrowMut;
-use std::sync::Arc;
+use std::{borrow::BorrowMut, fmt::Display};
 
 use hashbrown::{HashMap, HashSet};
 use keccak_hash::{keccak, H256};
 use rlp::{Prototype, Rlp, RlpStream};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     common::{Key, OwnedValue, Value},
@@ -21,7 +23,7 @@ use crate::{
 
 const HASHED_LENGTH: usize = 32;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct InnerTrie<D>
 where
     D: Database,
@@ -30,11 +32,17 @@ where
     /// 32 byte hash of the trie's root node.
     root_hash: H256,
 
+    #[serde(skip)]
     db: Arc<D>,
 
     /// The batch of pending new nodes to write
+    #[serde(skip)]
     cache: HashMap<Vec<u8>, Vec<u8>>,
+
+    #[serde(skip)]
     passing_keys: HashSet<Vec<u8>>,
+
+    #[serde(skip)]
     gen_keys: HashSet<Vec<u8>>,
 }
 
@@ -827,5 +835,15 @@ where
             None => None,
         };
         Ok(node)
+    }
+}
+
+impl<D: Database> Display for InnerTrie<D> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            serde_json::to_string_pretty(&self).unwrap_or_default()
+        )
     }
 }

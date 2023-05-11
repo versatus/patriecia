@@ -1,6 +1,8 @@
 /// Taken from https://github.com/carver/eth-trie.rs/blob/542cd734de08e55bbabcb009a2c8ab47f6c509e5/src/nibbles.rs
 /// remove need for this mod and reuse a nibble crate instead
-use std::cmp::min;
+use std::{cmp::min, fmt::Display};
+
+use serde::{Deserialize, Serialize};
 
 #[derive(Default, Debug, Clone, Eq, PartialEq)]
 pub struct Nibbles {
@@ -161,6 +163,32 @@ impl Nibbles {
     }
 }
 
+impl Display for Nibbles {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", hex::encode(&self.hex_data))
+    }
+}
+
+impl Serialize for Nibbles {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&hex::encode(&self.hex_data))
+    }
+}
+
+impl<'de> Deserialize<'de> for Nibbles {
+    fn deserialize<D>(deserializer: D) -> Result<Nibbles, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        let hex_data = hex::decode(s).map_err(serde::de::Error::custom)?;
+        Ok(Nibbles { hex_data })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -171,6 +199,7 @@ mod tests {
         let compact = n.encode_compact();
         let n2 = Nibbles::from_compact(&compact);
         let (raw, is_leaf) = n2.encode_raw();
+
         assert!(is_leaf);
         assert_eq!(raw, b"key1");
     }
