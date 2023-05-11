@@ -73,8 +73,7 @@ impl BranchNode {
         if i == BRANCHING_FACTOR {
             match node {
                 Node::Leaf(leaf) => {
-                    self.value = Some(leaf.value);
-                    // self.value = Some(leaf.value.clone());
+                    self.value = Some(leaf.value.clone());
                     Ok(())
                 }
                 _ => Err(NodeError::InvalidNodeInsert(
