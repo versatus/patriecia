@@ -12,7 +12,6 @@ edition = "2021"
 
 [lib]
 name = "jmt"
-path = "jmt"
 
 [features]
 default = ["ics23", "std"]

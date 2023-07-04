@@ -7,7 +7,6 @@ authors = ["VRRB Labs <info@vrrb.io>"]
 
 [lib]
 name = "pmt"
-path = "pmt"
 
 [dependencies]
 left-right = { workspace = true }
