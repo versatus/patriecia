@@ -1,0 +1,32 @@
+[package]
+name = "pmt"
+description = "Patricia Merkle Trie"
+version = "0.1.0"
+edition = "2021"
+authors = ["VRRB Labs <info@vrrb.io>"]
+
+[lib]
+name = "pmt"
+path = "pmt"
+
+[dependencies]
+left-right = { workspace = true }
+hashbrown = { workspace = true }
+keccak-hash = { workspace = true }
+log = { workspace = true }
+parking_lot = { workspace = true }
+rlp = { workspace = true }
+thiserror = { workspace = true }
+bytes = { workspace = true }
+serde_json = { workspace = true }
+bincode = { workspace = true }
+serde = { workspace = true }
+hex = { workspace = true }
+serde_bytes = { workspace = true }
+
+[dev-dependencies]
+rand = { workspace = true }
+hex = { workspace = true }
+criterion = { workspace = true }
+ethereum-types = { workspace = true }
+uuid = { workspace = true }
