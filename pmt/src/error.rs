@@ -1,8 +1,7 @@
-use keccak_hash::H256;
 use rlp::DecoderError;
 use thiserror::Error;
 
-use crate::{nibbles::Nibbles, node::NodeError};
+use crate::{nibbles::Nibbles, node::NodeError, serde_hash::H256};
 
 #[derive(Error, Debug, Clone, Eq, PartialEq)]
 pub enum TrieError {

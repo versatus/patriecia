@@ -6,7 +6,6 @@ use std::sync::Arc;
 use std::{borrow::BorrowMut, fmt::Display};
 
 use hashbrown::{HashMap, HashSet};
-use keccak_hash::{keccak, H256};
 use rlp::{Prototype, Rlp, RlpStream};
 use serde::{Deserialize, Serialize};
 
@@ -17,6 +16,7 @@ use crate::{
     nibbles::Nibbles,
     node::{BranchNode, ExtensionNode, HashNode, Node},
     result::Result,
+    serde_hash::{keccak, H256},
     trie::Trie,
     TrieIterator,
 };
@@ -433,7 +433,7 @@ where
                 ))
             }
             Node::Branch(ref mut branch) => {
-                let mut borrow_branch = branch.borrow_mut();
+                let borrow_branch = branch.borrow_mut();
 
                 if partial.at(0) == 0x10 {
                     borrow_branch.value = Some(value);
@@ -447,7 +447,7 @@ where
                 Ok(Node::Branch(branch.clone()))
             }
             Node::Extension(ext) => {
-                let mut borrow_ext = ext.borrow_mut();
+                let borrow_ext = ext.borrow_mut();
 
                 let prefix = &borrow_ext.prefix;
                 let mut sub_node = borrow_ext.node.clone();
@@ -525,7 +525,7 @@ where
                 Ok((Node::Leaf(leaf.clone()), false))
             }
             Node::Branch(branch) => {
-                let mut borrow_branch = branch.borrow_mut();
+                let borrow_branch = branch.borrow_mut();
 
                 if partial.at(0) == 0x10 {
                     borrow_branch.value = None;

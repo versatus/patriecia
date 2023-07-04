@@ -8,6 +8,7 @@ pub mod trie;
 pub mod trie_iterator;
 
 pub mod common;
+pub mod serde_hash;
 pub use common::*;
 pub use db::*;
 pub use error::*;
@@ -19,7 +20,7 @@ pub use trie_iterator::*;
 pub(crate) mod nibbles;
 pub(crate) mod node;
 
-pub use keccak_hash::H256;
+pub use serde_hash::H256;
 
 #[cfg(test)]
 mod tests {
@@ -28,13 +29,13 @@ mod tests {
         sync::Arc,
     };
 
-    use keccak_hash::{keccak, H256};
     use rand::{distributions::Alphanumeric, seq::SliceRandom, thread_rng, Rng};
 
     use crate::{
         db::{Database, MemoryDB},
         error::TrieError,
         nibbles::Nibbles,
+        serde_hash::{keccak, H256},
     };
     use crate::{InnerTrie, Trie};
 

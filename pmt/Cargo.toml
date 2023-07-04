@@ -12,6 +12,7 @@ name = "pmt"
 left-right = { workspace = true }
 hashbrown = { workspace = true }
 keccak-hash = { workspace = true }
+fixed-hash = { workspace = true }
 log = { workspace = true }
 parking_lot = { workspace = true }
 rlp = { workspace = true }

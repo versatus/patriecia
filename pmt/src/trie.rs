@@ -1,8 +1,7 @@
-use keccak_hash::H256;
-
 use crate::common::{Key, OwnedValue, Value};
 use crate::db::Database;
 use crate::result::Result;
+use crate::serde_hash::H256;
 
 pub trait Trie<D: Database> {
     /// Returns the value for key stored in the trie.
