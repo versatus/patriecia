@@ -19,6 +19,7 @@ thiserror = { workspace = true }
 keccak-hash = { workspace = true }
 parking_lot = { workspace = true }
 hashbrown = { workspace = true }
+fixed-hash = { workspace = true }
 
 [workspace]
 members = [
@@ -29,6 +30,7 @@ members = [
 [workspace.dependencies]
 left-right = "0.11.5"
 keccak-hash = "0.9"
+fixed-hash = "0.7.0"
 log = "0.4.16"
 rlp = "0.5.1"
 rand = "0.8.3"
