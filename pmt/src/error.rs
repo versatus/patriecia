@@ -31,3 +31,6 @@ pub enum TrieError {
 
 #[derive(Error, Debug, Clone)]
 pub enum MemDBError {}
+
+#[derive(Error, Debug, Clone)]
+pub enum MockTreeStoreError {}

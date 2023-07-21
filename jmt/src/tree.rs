@@ -3,6 +3,7 @@ use alloc::{format, vec};
 use core::{cmp::Ordering, convert::TryInto};
 #[cfg(not(feature = "std"))]
 use hashbrown::HashMap;
+use pmt::{Database, Key, Result as TrieResult, Trie, Value, H256};
 #[cfg(feature = "std")]
 use std::collections::HashMap;
 
@@ -31,7 +32,7 @@ pub type Sha256Jmt<'a, R> = JellyfishMerkleTree<'a, R, Sha256>;
 
 /// A Jellyfish Merkle tree data structure, parameterized by a [`TreeReader`] `R`
 /// and a [`SimpleHasher`] `H`. See [`crate`] for description.
-pub struct JellyfishMerkleTree<'a, R, H: SimpleHasher> {
+pub struct JellyfishMerkleTree<'a, R: TreeReader + Database, H: SimpleHasher> {
     reader: &'a R,
     leaf_count_migration: bool,
     _phantom_hasher: PhantomHasher<H>,
@@ -40,9 +41,61 @@ pub struct JellyfishMerkleTree<'a, R, H: SimpleHasher> {
 #[cfg(feature = "ics23")]
 pub mod ics23_impl;
 
+impl<'a, R, H> Trie<R> for JellyfishMerkleTree<'a, R, H>
+where
+    R: TreeReader + Database,
+    H: SimpleHasher,
+{
+    // current get function pre-implemented
+    //
+    /// Returns the value (if applicable), without any proof.
+    ///
+    /// Equivalent to [`get_with_proof`](JellyfishMerkleTree::get_with_proof) and dropping the
+    /// proof, but more efficient.
+    // pub fn get(&self, key: KeyHash, version: Version) -> Result<Option<OwnedValue>> {
+    //     self.get_without_proof(key, version)
+    // }
+    fn get(&self, key: Key) -> TrieResult<Option<Vec<u8>>> {
+        todo!()
+    }
+
+    fn contains(&self, key: Key) -> TrieResult<bool> {
+        todo!()
+    }
+
+    fn insert(&mut self, key: Key, value: Value) -> TrieResult<()> {
+        todo!()
+    }
+
+    fn remove(&mut self, key: Key) -> TrieResult<bool> {
+        todo!()
+    }
+
+    fn root_hash(&mut self) -> TrieResult<H256> {
+        todo!()
+    }
+
+    fn commit(&mut self) -> TrieResult<H256> {
+        todo!()
+    }
+
+    fn get_proof(&mut self, key: Key) -> TrieResult<Vec<OwnedValue>> {
+        todo!()
+    }
+
+    fn verify_proof(
+        &self,
+        root_hash: H256,
+        key: Key,
+        proof: Vec<Vec<u8>>,
+    ) -> TrieResult<Option<OwnedValue>> {
+        todo!()
+    }
+}
+
 impl<'a, R, H> JellyfishMerkleTree<'a, R, H>
 where
-    R: 'a + TreeReader,
+    R: 'a + TreeReader + Database,
     H: SimpleHasher,
 {
     /// Creates a `JellyfishMerkleTree` backed by the given [`TreeReader`].

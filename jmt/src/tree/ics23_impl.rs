@@ -1,6 +1,7 @@
 use alloc::vec;
 use alloc::vec::Vec;
 use anyhow::Result;
+use pmt::Database;
 
 use crate::{
     proof::{SparseMerkleProof, INTERNAL_DOMAIN_SEPARATOR, LEAF_DOMAIN_SEPARATOR},
@@ -75,7 +76,7 @@ fn sparse_merkle_proof_to_ics23_existence_proof<H: SimpleHasher>(
 
 impl<'a, R, H> JellyfishMerkleTree<'a, R, H>
 where
-    R: 'a + TreeReader + HasPreimage,
+    R: 'a + TreeReader + HasPreimage + Database,
     H: SimpleHasher,
 {
     fn exclusion_proof_to_ics23_nonexistence_proof(

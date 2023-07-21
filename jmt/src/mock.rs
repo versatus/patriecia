@@ -8,12 +8,16 @@ use parking_lot::RwLock;
 
 use alloc::vec::Vec;
 use anyhow::{bail, ensure, Result};
+use pmt::{Database, Key, MockTreeStoreError};
 use sha2::Sha256;
 
 #[cfg(not(feature = "std"))]
 use hashbrown::{hash_map::Entry, HashMap};
 #[cfg(feature = "std")]
-use std::collections::{hash_map::Entry, HashMap};
+use std::{
+    collections::{hash_map::Entry, HashMap},
+    sync::Arc,
+};
 
 use crate::{
     node_type::{LeafNode, Node, NodeKey},
@@ -35,17 +39,50 @@ struct MockTreeStoreInner {
 /// The tree store is internally represented with a `HashMap`.  This structure
 /// is exposed for use only by downstream crates' tests, and it should obviously
 /// not be used in production.
+#[derive(Debug, Clone)]
 pub struct MockTreeStore {
-    data: RwLock<MockTreeStoreInner>,
+    data: Arc<RwLock<MockTreeStoreInner>>,
     allow_overwrite: bool,
 }
 
 impl Default for MockTreeStore {
     fn default() -> Self {
         Self {
-            data: RwLock::new(Default::default()),
+            data: Arc::new(RwLock::new(Default::default())),
             allow_overwrite: false,
         }
+    }
+}
+
+impl Database for MockTreeStore {
+    type Error = MockTreeStoreError;
+
+    fn get(&self, key: Key) -> Result<Option<OwnedValue>, Self::Error> {
+        todo!()
+    }
+
+    fn insert(&self, key: Key, value: Vec<u8>) -> Result<(), Self::Error> {
+        todo!()
+    }
+
+    fn remove(&self, key: Key) -> Result<(), Self::Error> {
+        todo!()
+    }
+
+    fn flush(&self) -> Result<(), Self::Error> {
+        todo!()
+    }
+
+    fn len(&self) -> Result<usize, Self::Error> {
+        todo!()
+    }
+
+    fn values(&self) -> Result<Vec<(Vec<u8>, Vec<u8>)>, Self::Error> {
+        todo!()
+    }
+
+    fn is_empty(&self) -> Result<bool, Self::Error> {
+        todo!()
     }
 }
 
