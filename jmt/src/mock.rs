@@ -3,13 +3,12 @@
 
 //! A mock, in-memory tree store useful for testing.
 
-use alloc::{collections::BTreeSet, vec};
-use parking_lot::RwLock;
-
-use alloc::vec::Vec;
+use alloc::{collections::BTreeSet, vec::Vec};
 use anyhow::{bail, ensure, Result};
-use pmt::{Database, Key, MockTreeStoreError};
+use parking_lot::RwLock;
+use pmt::{Database, Key};
 use sha2::Sha256;
+use thiserror::Error;
 
 #[cfg(not(feature = "std"))]
 use hashbrown::{hash_map::Entry, HashMap};
@@ -25,6 +24,9 @@ use crate::{
     types::Version,
     KeyHash, OwnedValue,
 };
+
+#[derive(Error, Debug, Clone)]
+pub enum MockTreeStoreError {}
 
 #[derive(Default, Debug)]
 struct MockTreeStoreInner {
