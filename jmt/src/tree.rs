@@ -3,13 +3,14 @@ use alloc::{format, vec};
 use core::{cmp::Ordering, convert::TryInto};
 #[cfg(not(feature = "std"))]
 use hashbrown::HashMap;
-use pmt::{Database, Key, Result as TrieResult, Trie, Value, H256};
+use pmt::{Database, Key, Result as TrieResult, Value, H256};
 #[cfg(feature = "std")]
 use std::collections::HashMap;
 
 use anyhow::{bail, ensure, format_err, Context, Result};
 use sha2::Sha256;
 
+use crate::trie::Jmt;
 use crate::{
     node_type::{Child, Children, InternalNode, LeafNode, Node, NodeKey, NodeType},
     storage::{TreeReader, TreeUpdateBatch},
@@ -29,6 +30,9 @@ use crate::{
 /// A [`JellyfishMerkleTree`] instantiated using the `sha2::Sha256` hasher.
 /// This is a sensible default choice for most applications.
 pub type Sha256Jmt<'a, R> = JellyfishMerkleTree<'a, R, Sha256>;
+/// A [`JellyfishMerkleTree`] instantiated using a modified `keccak_hash::H256` hasher.
+/// This is the default choice for the vrrb protocol.
+pub type H256Jmt<'a, R> = JellyfishMerkleTree<'a, R, H256>;
 
 /// A Jellyfish Merkle tree data structure, parameterized by a [`TreeReader`] `R`
 /// and a [`SimpleHasher`] `H`. See [`crate`] for description.
@@ -41,7 +45,7 @@ pub struct JellyfishMerkleTree<'a, R: TreeReader + Database, H: SimpleHasher> {
 #[cfg(feature = "ics23")]
 pub mod ics23_impl;
 
-impl<'a, R, H> Trie<R> for JellyfishMerkleTree<'a, R, H>
+impl<'a, R, H> Jmt<R, H> for JellyfishMerkleTree<'a, R, H>
 where
     R: TreeReader + Database,
     H: SimpleHasher,
@@ -55,39 +59,44 @@ where
     // pub fn get(&self, key: KeyHash, version: Version) -> Result<Option<OwnedValue>> {
     //     self.get_without_proof(key, version)
     // }
-    fn get(&self, key: Key) -> TrieResult<Option<Vec<u8>>> {
+    fn get(&self, key: KeyHash, version: Version) -> TrieResult<Option<OwnedValue>> {
         todo!()
     }
 
-    fn contains(&self, key: Key) -> TrieResult<bool> {
+    fn contains(&self, key: KeyHash) -> TrieResult<bool> {
         todo!()
     }
 
-    fn insert(&mut self, key: Key, value: Value) -> TrieResult<()> {
+    fn insert(
+        &mut self,
+        key: NodeKey,
+        version: Version,
+        value: Option<ValueHash>,
+    ) -> TrieResult<()> {
         todo!()
     }
 
-    fn remove(&mut self, key: Key) -> TrieResult<bool> {
+    fn remove(&mut self, key: KeyHash) -> TrieResult<bool> {
         todo!()
     }
 
-    fn root_hash(&mut self) -> TrieResult<H256> {
+    fn root_hash(&self, version: Version) -> TrieResult<RootHash> {
         todo!()
     }
 
-    fn commit(&mut self) -> TrieResult<H256> {
+    fn commit(&mut self) -> TrieResult<H> {
         todo!()
     }
 
-    fn get_proof(&mut self, key: Key) -> TrieResult<Vec<OwnedValue>> {
+    fn get_proof(&self, key: KeyHash, version: Version) -> TrieResult<SparseMerkleProof<H>> {
         todo!()
     }
 
     fn verify_proof(
         &self,
-        root_hash: H256,
-        key: Key,
-        proof: Vec<Vec<u8>>,
+        root_hash: RootHash,
+        key: KeyHash,
+        proof: SparseMerkleProof<H>,
     ) -> TrieResult<Option<OwnedValue>> {
         todo!()
     }

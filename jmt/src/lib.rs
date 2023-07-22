@@ -86,6 +86,7 @@ mod node_type;
 mod reader;
 mod tree;
 mod tree_cache;
+mod trie;
 mod types;
 mod writer;
 
