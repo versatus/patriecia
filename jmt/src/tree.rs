@@ -51,17 +51,14 @@ where
     R: TreeReader + VersionedDatabase,
     H: SimpleHasher,
 {
-    // current get function pre-implemented
-    //
     /// Returns the value (if applicable), without any proof.
     ///
     /// Equivalent to [`get_with_proof`](JellyfishMerkleTree::get_with_proof) and dropping the
     /// proof, but more efficient.
-    // pub fn get(&self, key: KeyHash, version: Version) -> Result<Option<OwnedValue>> {
-    //     self.get_without_proof(key, version)
-    // }
     fn get(&self, key: KeyHash, version: Version) -> TrieResult<Option<OwnedValue>> {
-        todo!()
+        Ok(self
+            .get_without_proof(key, version)
+            .expect("could not find key at: {key}"))
     }
 
     fn contains(&self, key: KeyHash) -> TrieResult<bool> {
@@ -1220,14 +1217,6 @@ where
             .rev()
             .collect();
         Ok(SparseMerkleRangeProof::new(siblings))
-    }
-
-    /// Returns the value (if applicable), without any proof.
-    ///
-    /// Equivalent to [`get_with_proof`](JellyfishMerkleTree::get_with_proof) and dropping the
-    /// proof, but more efficient.
-    pub fn get(&self, key: KeyHash, version: Version) -> Result<Option<OwnedValue>> {
-        self.get_without_proof(key, version)
     }
 
     fn get_root_node(&self, version: Version) -> Result<Node> {
