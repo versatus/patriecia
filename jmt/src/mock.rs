@@ -7,7 +7,6 @@ use alloc::{collections::BTreeSet, vec::Vec};
 use anyhow::{bail, ensure, Result};
 use parking_lot::RwLock;
 use pmt::Key;
-use std::collections::hash_map::Values;
 use thiserror::Error;
 
 #[cfg(not(feature = "std"))]
