@@ -1,9 +1,10 @@
+use crate::db::VersionedDatabase;
 use alloc::{collections::BTreeMap, vec::Vec};
 use alloc::{format, vec};
 use core::{cmp::Ordering, convert::TryInto};
 #[cfg(not(feature = "std"))]
 use hashbrown::HashMap;
-use pmt::{Database, Key, Result as TrieResult, Value, H256};
+use pmt::{Result as TrieResult, H256};
 #[cfg(feature = "std")]
 use std::collections::HashMap;
 
@@ -36,7 +37,7 @@ pub type H256Jmt<'a, R> = JellyfishMerkleTree<'a, R, H256>;
 
 /// A Jellyfish Merkle tree data structure, parameterized by a [`TreeReader`] `R`
 /// and a [`SimpleHasher`] `H`. See [`crate`] for description.
-pub struct JellyfishMerkleTree<'a, R: TreeReader + Database, H: SimpleHasher> {
+pub struct JellyfishMerkleTree<'a, R: TreeReader + VersionedDatabase, H: SimpleHasher> {
     reader: &'a R,
     leaf_count_migration: bool,
     _phantom_hasher: PhantomHasher<H>,
@@ -47,7 +48,7 @@ pub mod ics23_impl;
 
 impl<'a, R, H> Jmt<R, H> for JellyfishMerkleTree<'a, R, H>
 where
-    R: TreeReader + Database,
+    R: TreeReader + VersionedDatabase,
     H: SimpleHasher,
 {
     // current get function pre-implemented
@@ -104,7 +105,7 @@ where
 
 impl<'a, R, H> JellyfishMerkleTree<'a, R, H>
 where
-    R: 'a + TreeReader + Database,
+    R: 'a + TreeReader + VersionedDatabase,
     H: SimpleHasher,
 {
     /// Creates a `JellyfishMerkleTree` backed by the given [`TreeReader`].

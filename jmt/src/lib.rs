@@ -81,6 +81,7 @@ use sha2::Digest;
 use thiserror::Error;
 
 mod bytes32ext;
+mod db;
 mod iterator;
 mod node_type;
 mod reader;

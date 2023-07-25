@@ -1,13 +1,14 @@
 use crate::{
+    db::VersionedDatabase,
     proof::SparseMerkleProof,
     storage::{NodeKey, TreeReader},
     KeyHash, OwnedValue, RootHash, SimpleHasher, ValueHash, Version,
 };
-use pmt::{Database, Result as TrieResult};
+use pmt::Result as TrieResult;
 
 pub trait Jmt<R, H>
 where
-    R: TreeReader + Database,
+    R: TreeReader + VersionedDatabase,
     H: SimpleHasher,
 {
     /// Returns the value for key stored in the trie.

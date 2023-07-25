@@ -1,9 +1,9 @@
 use alloc::vec;
 use alloc::vec::Vec;
 use anyhow::Result;
-use pmt::Database;
 
 use crate::{
+    db::VersionedDatabase,
     proof::{SparseMerkleProof, INTERNAL_DOMAIN_SEPARATOR, LEAF_DOMAIN_SEPARATOR},
     storage::HasPreimage,
     storage::TreeReader,
@@ -76,7 +76,7 @@ fn sparse_merkle_proof_to_ics23_existence_proof<H: SimpleHasher>(
 
 impl<'a, R, H> JellyfishMerkleTree<'a, R, H>
 where
-    R: 'a + TreeReader + HasPreimage + Database,
+    R: 'a + TreeReader + HasPreimage + VersionedDatabase,
     H: SimpleHasher,
 {
     fn exclusion_proof_to_ics23_nonexistence_proof(
@@ -282,7 +282,7 @@ mod tests {
 
         // Ensure that the tree contains at least one key-value pair
         kvs.push((KeyHash::with::<Sha256>(b"key"), Some(b"value1".to_vec())));
-        db.put_key_preimage(&b"key".to_vec());
+        db.put_key_preimage::<Sha256>(&b"key".to_vec());
 
         for key_preimage in keys {
             // Since we hardcode the check for key, ensure that it's not inserted randomly by proptest
@@ -292,7 +292,7 @@ mod tests {
             let key_hash = KeyHash::with::<Sha256>(key_preimage.as_slice());
             let value = vec![0u8; 32];
             kvs.push((key_hash, Some(value)));
-            db.put_key_preimage(&key_preimage.to_vec());
+            db.put_key_preimage::<Sha256>(&key_preimage.to_vec());
         }
 
         let (new_root_hash, batch) = tree.put_value_set(kvs, 0).unwrap();

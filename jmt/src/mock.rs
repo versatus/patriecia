@@ -6,8 +6,8 @@
 use alloc::{collections::BTreeSet, vec::Vec};
 use anyhow::{bail, ensure, Result};
 use parking_lot::RwLock;
-use pmt::{Database, Key};
-use sha2::Sha256;
+use pmt::Key;
+use std::collections::hash_map::Values;
 use thiserror::Error;
 
 #[cfg(not(feature = "std"))]
@@ -19,10 +19,11 @@ use std::{
 };
 
 use crate::{
+    db::VersionedDatabase,
     node_type::{LeafNode, Node, NodeKey},
     storage::{HasPreimage, NodeBatch, StaleNodeIndex, TreeReader, TreeUpdateBatch, TreeWriter},
     types::Version,
-    KeyHash, OwnedValue,
+    KeyHash, OwnedValue, SimpleHasher,
 };
 
 #[derive(Error, Debug, Clone)]
@@ -56,11 +57,17 @@ impl Default for MockTreeStore {
     }
 }
 
-impl Database for MockTreeStore {
+impl VersionedDatabase for MockTreeStore {
     type Error = MockTreeStoreError;
 
-    fn get(&self, key: Key) -> Result<Option<OwnedValue>, Self::Error> {
-        todo!()
+    fn get(
+        &self,
+        max_version: Version,
+        key_hash: KeyHash,
+    ) -> Result<Option<OwnedValue>, Self::Error> {
+        Ok(self
+            .get_value_option(max_version, key_hash)
+            .expect("failed to get value"))
     }
 
     fn insert(&self, key: Key, value: Vec<u8>) -> Result<(), Self::Error> {
@@ -76,14 +83,24 @@ impl Database for MockTreeStore {
     }
 
     fn len(&self) -> Result<usize, Self::Error> {
-        todo!()
+        Ok(self.num_nodes())
     }
 
-    fn values(&self) -> Result<Vec<(Vec<u8>, Vec<u8>)>, Self::Error> {
-        todo!()
+    fn value_history(&self) -> HashMap<KeyHash, Vec<(Version, Option<OwnedValue>)>> {
+        self.data.read().value_history.clone()
     }
 
     fn is_empty(&self) -> Result<bool, Self::Error> {
+        Ok(self.num_nodes() == 0)
+    }
+
+    fn insert_batch(&self, node_batch: &NodeBatch) -> Result<(), Self::Error> {
+        Ok(self
+            .write_node_batch(node_batch)
+            .expect("failed to write node batch to: {self:?}"))
+    }
+
+    fn remove_batch(&self, keys: &[Vec<u8>]) -> Result<(), Self::Error> {
         todo!()
     }
 }
@@ -206,8 +223,8 @@ impl MockTreeStore {
         put_value(&mut locked.value_history, version, key_hash, Some(value))
     }
 
-    pub fn put_key_preimage(&self, preimage: &Vec<u8>) {
-        let key_hash: KeyHash = KeyHash::with::<Sha256>(preimage);
+    pub fn put_key_preimage<H: SimpleHasher>(&self, preimage: &Vec<u8>) {
+        let key_hash: KeyHash = KeyHash::with::<H>(preimage);
         self.data
             .write()
             .preimages
