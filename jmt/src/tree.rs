@@ -55,38 +55,31 @@ where
     ///
     /// Equivalent to [`get_with_proof`](JellyfishMerkleTree::get_with_proof) and dropping the
     /// proof, but more efficient.
-    fn get(&self, key: KeyHash, version: Version) -> TrieResult<Option<OwnedValue>> {
-        Ok(self
-            .get_without_proof(key, version)
-            .expect("could not find key at: {key}"))
+    fn get(&self, key: KeyHash, version: Version) -> Result<Option<OwnedValue>> {
+        Ok(self.get_without_proof(key, version)?)
     }
 
-    fn contains(&self, key: KeyHash) -> TrieResult<bool> {
+    fn contains(&self, key: KeyHash, version: Version) -> Result<bool> {
+        Ok(self.get(key, version)?.is_some())
+    }
+
+    fn insert(&mut self, key: NodeKey, version: Version, value: Option<ValueHash>) -> Result<()> {
         todo!()
     }
 
-    fn insert(
-        &mut self,
-        key: NodeKey,
-        version: Version,
-        value: Option<ValueHash>,
-    ) -> TrieResult<()> {
+    fn remove(&mut self, key: KeyHash) -> Result<bool> {
         todo!()
     }
 
-    fn remove(&mut self, key: KeyHash) -> TrieResult<bool> {
+    fn root_hash(&self, version: Version) -> Result<RootHash> {
         todo!()
     }
 
-    fn root_hash(&self, version: Version) -> TrieResult<RootHash> {
+    fn commit(&mut self) -> Result<H> {
         todo!()
     }
 
-    fn commit(&mut self) -> TrieResult<H> {
-        todo!()
-    }
-
-    fn get_proof(&self, key: KeyHash, version: Version) -> TrieResult<SparseMerkleProof<H>> {
+    fn get_proof(&self, key: KeyHash, version: Version) -> Result<SparseMerkleProof<H>> {
         todo!()
     }
 
@@ -95,7 +88,7 @@ where
         root_hash: RootHash,
         key: KeyHash,
         proof: SparseMerkleProof<H>,
-    ) -> TrieResult<Option<OwnedValue>> {
+    ) -> Result<Option<OwnedValue>> {
         todo!()
     }
 }

@@ -4,7 +4,7 @@ use crate::{
     storage::{NodeKey, TreeReader},
     KeyHash, OwnedValue, RootHash, SimpleHasher, ValueHash, Version,
 };
-use pmt::Result as TrieResult;
+use anyhow::Result;
 
 pub trait Jmt<R, H>
 where
@@ -12,28 +12,23 @@ where
     H: SimpleHasher,
 {
     /// Returns the value for key stored in the trie.
-    fn get(&self, key: KeyHash, version: Version) -> TrieResult<Option<OwnedValue>>;
+    fn get(&self, key: KeyHash, version: Version) -> Result<Option<OwnedValue>>;
 
     /// Returns true if the key is present within the trie
-    fn contains(&self, key: KeyHash) -> TrieResult<bool>;
+    fn contains(&self, key: KeyHash, version: Version) -> Result<bool>;
 
     /// Inserts value into trie and updates it if it exists
-    fn insert(
-        &mut self,
-        key: NodeKey,
-        version: Version,
-        value: Option<ValueHash>,
-    ) -> TrieResult<()>;
+    fn insert(&mut self, key: NodeKey, version: Version, value: Option<ValueHash>) -> Result<()>;
 
     /// Removes any existing value for key from the trie.
-    fn remove(&mut self, key: KeyHash) -> TrieResult<bool>;
+    fn remove(&mut self, key: KeyHash) -> Result<bool>;
 
     /// Returns the root hash of the trie. This is an expensive operation as it commits every node
     /// in the cache to the database to recalculate the root.
-    fn root_hash(&self, version: Version) -> TrieResult<RootHash>;
+    fn root_hash(&self, version: Version) -> Result<RootHash>;
 
     /// Commits all cached nodes to the database and returns the root hash of the trie.
-    fn commit(&mut self) -> TrieResult<H>;
+    fn commit(&mut self) -> Result<H>;
 
     /// Prove constructs a merkle proof for key. The result contains all encoded nodes
     /// on the path to the value at key. The value itself is also included in the last
@@ -44,7 +39,7 @@ where
     /// with the node that proves the absence of the key.
     // TODO refactor encode_raw() so that it doesn't need a &mut self
     // TODO (Daniel): refactor and potentially submit a patch upstream
-    fn get_proof(&self, key: KeyHash, version: Version) -> TrieResult<SparseMerkleProof<H>>;
+    fn get_proof(&self, key: KeyHash, version: Version) -> Result<SparseMerkleProof<H>>;
 
     /// Returns a value if key exists, None if key doesn't exist, Error if proof is wrong
     fn verify_proof(
@@ -52,5 +47,5 @@ where
         root_hash: RootHash,
         key: KeyHash,
         proof: SparseMerkleProof<H>,
-    ) -> TrieResult<Option<OwnedValue>>;
+    ) -> Result<Option<OwnedValue>>;
 }

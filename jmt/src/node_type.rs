@@ -751,6 +751,8 @@ enum NodeTag {
 #[derive(Clone, Debug, Eq, PartialEq, BorshSerialize, BorshDeserialize, Serialize, Deserialize)]
 pub enum Node {
     /// Represents `null`.
+    ///
+    /// Two node types only are not able to gracefully handle a special case when the whole tree is empty.
     Null,
     /// A wrapper of [`InternalNode`].
     Internal(InternalNode),
