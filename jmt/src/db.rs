@@ -31,6 +31,7 @@ pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
     /// Flush data to the DB from the cache.
     fn flush(&self) -> Result<(), Self::Error>;
 
+    // length of what? nodes? values?
     fn len(&self) -> Result<usize, Self::Error>;
 
     /// Replaces `Database::values()`. Returns a clone of the value history HashMap which
@@ -38,5 +39,6 @@ pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
     /// for iteration over `jmt::VersionedDatabase`.
     fn value_history(&self) -> HashMap<KeyHash, Vec<(Version, Option<OwnedValue>)>>;
 
+    // values is empty? which part of DB is this checking?
     fn is_empty(&self) -> Result<bool, Self::Error>;
 }
