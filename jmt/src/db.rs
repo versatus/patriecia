@@ -1,7 +1,10 @@
 use pmt::Key;
 use std::collections::HashMap;
 
-use crate::{storage::NodeBatch, KeyHash, OwnedValue, Version};
+use crate::{
+    storage::{Node, NodeBatch, NodeKey},
+    KeyHash, OwnedValue, Version,
+};
 
 /// "DB" defines the "trait" of trie and database interaction.
 /// You should first write the data to the cache and write the data
@@ -33,6 +36,21 @@ pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
 
     // length of what? nodes? values?
     fn len(&self) -> Result<usize, Self::Error>;
+
+    /// Replaces `Database::values()`. Returns a clone of the nodes HashMap which
+    /// has a `.values()` method returning `Values<NodeKey, Node>`
+    /// for iteration over `jmt::VersionedDatabase`.
+    ///
+    /// ### Example:
+    /// ```rust, ignore
+    /// use crate::mock::MockTreeStore;
+    ///
+    /// let db = MockTreeStore::default();
+    /// for (key, node) in db.nodes().values() {
+    ///     println!("{key}: {node}");
+    /// }
+    /// ```
+    fn nodes(&self) -> HashMap<NodeKey, Node>;
 
     /// Replaces `Database::values()`. Returns a clone of the value history HashMap which
     /// has a `.values()` method returning `Values<KeyHash, Vec<(Version, Option<OwnedValue>)>>`

@@ -85,6 +85,10 @@ impl VersionedDatabase for MockTreeStore {
         Ok(self.num_nodes())
     }
 
+    fn nodes(&self) -> HashMap<NodeKey, Node> {
+        self.data.read().nodes.clone()
+    }
+
     fn value_history(&self) -> HashMap<KeyHash, Vec<(Version, Option<OwnedValue>)>> {
         self.data.read().value_history.clone()
     }
