@@ -59,14 +59,8 @@ impl Default for MockTreeStore {
 impl VersionedDatabase for MockTreeStore {
     type Error = MockTreeStoreError;
 
-    fn get(
-        &self,
-        max_version: Version,
-        key_hash: KeyHash,
-    ) -> Result<Option<OwnedValue>, Self::Error> {
-        Ok(self
-            .get_value_option(max_version, key_hash)
-            .expect("failed to get value"))
+    fn get(&self, node_key: &NodeKey) -> Result<Option<Node>, Self::Error> {
+        Ok(self.get_node_option(node_key).expect("failed to get value"))
     }
 
     fn insert(&self, key: Key, value: Vec<u8>) -> Result<(), Self::Error> {

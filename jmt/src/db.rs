@@ -12,11 +12,7 @@ use crate::{
 pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
     type Error: std::error::Error;
 
-    fn get(
-        &self,
-        max_version: Version,
-        key_hash: KeyHash,
-    ) -> Result<Option<OwnedValue>, Self::Error>;
+    fn get(&self, node_key: &NodeKey) -> Result<Option<Node>, Self::Error>;
 
     /// Insert data into the cache.
     fn insert(&self, key: Key, value: Vec<u8>) -> Result<(), Self::Error>;
