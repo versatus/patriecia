@@ -313,6 +313,11 @@ impl Children {
     borsh::BorshSerialize,
     borsh::BorshDeserialize,
 )]
+
+/// Represents a subtree with up to 16 leaf nodes.
+///
+/// See the implementation of [`Arbitrary`] on this type
+/// for diagrams and explanations of its use.
 pub struct InternalNode {
     /// Up to 16 children.
     children: Children,

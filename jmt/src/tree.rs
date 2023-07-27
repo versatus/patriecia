@@ -4,7 +4,7 @@ use alloc::{format, vec};
 use core::{cmp::Ordering, convert::TryInto};
 #[cfg(not(feature = "std"))]
 use hashbrown::HashMap;
-use pmt::{Result as TrieResult, H256};
+use pmt::H256;
 #[cfg(feature = "std")]
 use std::collections::HashMap;
 
@@ -51,12 +51,8 @@ where
     R: TreeReader + VersionedDatabase,
     H: SimpleHasher,
 {
-    /// Returns the value (if applicable), without any proof.
-    ///
-    /// Equivalent to [`get_with_proof`](JellyfishMerkleTree::get_with_proof) and dropping the
-    /// proof, but more efficient.
     fn get(&self, key: KeyHash, version: Version) -> Result<Option<OwnedValue>> {
-        Ok(self.get_without_proof(key, version)?)
+        self.get_without_proof(key, version)
     }
 
     fn contains(&self, key: KeyHash, version: Version) -> Result<bool> {

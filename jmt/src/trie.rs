@@ -11,7 +11,10 @@ where
     R: TreeReader + VersionedDatabase,
     H: SimpleHasher,
 {
-    /// Returns the value for key stored in the trie.
+    /// Returns the value (if applicable), without any proof.
+    ///
+    /// Equivalent to [`get_with_proof`](JellyfishMerkleTree::get_with_proof) and dropping the
+    /// proof, but more efficient.
     fn get(&self, key: KeyHash, version: Version) -> Result<Option<OwnedValue>>;
 
     /// Returns true if the key is present within the trie

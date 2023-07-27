@@ -41,8 +41,15 @@ pub trait TreeReader {
     fn get_rightmost_leaf(&self) -> Result<Option<(NodeKey, LeafNode)>>;
 }
 
+#[derive(Debug, Clone)]
+pub struct Preimage(pub Vec<u8>);
+impl Preimage {
+    pub fn key(&self) -> Vec<u8> {
+        self.0.clone()
+    }
+}
 /// Defines the ability for a tree to look up the preimage of its key hashes.
 pub trait HasPreimage {
     /// Gets the preimage of a key hash, if it is present in the tree.
-    fn preimage(&self, key_hash: KeyHash) -> Result<Option<Vec<u8>>>;
+    fn preimage(&self, key_hash: KeyHash) -> Result<Option<Preimage>>;
 }

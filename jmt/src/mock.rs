@@ -20,6 +20,7 @@ use std::{
 use crate::{
     db::VersionedDatabase,
     node_type::{LeafNode, Node, NodeKey},
+    reader::Preimage,
     storage::{HasPreimage, NodeBatch, StaleNodeIndex, TreeReader, TreeUpdateBatch, TreeWriter},
     types::Version,
     KeyHash, OwnedValue, SimpleHasher,
@@ -33,7 +34,7 @@ struct MockTreeStoreInner {
     nodes: HashMap<NodeKey, Node>,
     stale_nodes: BTreeSet<StaleNodeIndex>,
     value_history: HashMap<KeyHash, Vec<(Version, Option<OwnedValue>)>>,
-    preimages: HashMap<KeyHash, Vec<u8>>,
+    preimages: HashMap<KeyHash, Preimage>,
 }
 
 /// A mock, in-memory tree store useful for testing.
@@ -57,25 +58,23 @@ impl Default for MockTreeStore {
 }
 
 impl VersionedDatabase for MockTreeStore {
-    type Error = MockTreeStoreError;
-
-    fn get(&self, node_key: &NodeKey) -> Result<Option<Node>, Self::Error> {
+    fn get(&self, node_key: &NodeKey) -> Result<Option<Node>> {
         Ok(self.get_node_option(node_key).expect("failed to get value"))
     }
 
-    fn insert(&self, key: Key, value: Vec<u8>) -> Result<(), Self::Error> {
+    fn insert(&self, key: Key, value: Vec<u8>) -> Result<()> {
         todo!()
     }
 
-    fn remove(&self, key: Key) -> Result<(), Self::Error> {
+    fn remove(&self, key: Key) -> Result<()> {
         todo!()
     }
 
-    fn flush(&self) -> Result<(), Self::Error> {
+    fn flush(&self) -> Result<()> {
         todo!()
     }
 
-    fn len(&self) -> Result<usize, Self::Error> {
+    fn len(&self) -> Result<usize> {
         Ok(self.num_nodes())
     }
 
@@ -87,17 +86,17 @@ impl VersionedDatabase for MockTreeStore {
         self.data.read().value_history.clone()
     }
 
-    fn is_empty(&self) -> Result<bool, Self::Error> {
+    fn is_empty(&self) -> Result<bool> {
         Ok(self.num_nodes() == 0)
     }
 
-    fn insert_batch(&self, node_batch: &NodeBatch) -> Result<(), Self::Error> {
+    fn insert_batch(&self, node_batch: &NodeBatch) -> Result<()> {
         Ok(self
             .write_node_batch(node_batch)
             .expect("failed to write node batch to: {self:?}"))
     }
 
-    fn remove_batch(&self, keys: &[Vec<u8>]) -> Result<(), Self::Error> {
+    fn remove_batch(&self, keys: &[Vec<u8>]) -> Result<()> {
         todo!()
     }
 }
@@ -144,7 +143,7 @@ impl TreeReader for MockTreeStore {
 }
 
 impl HasPreimage for MockTreeStore {
-    fn preimage(&self, key_hash: KeyHash) -> Result<Option<Vec<u8>>> {
+    fn preimage(&self, key_hash: KeyHash) -> Result<Option<Preimage>> {
         Ok(self.data.read().preimages.get(&key_hash).cloned())
     }
 }
@@ -220,8 +219,8 @@ impl MockTreeStore {
         put_value(&mut locked.value_history, version, key_hash, Some(value))
     }
 
-    pub fn put_key_preimage<H: SimpleHasher>(&self, preimage: &Vec<u8>) {
-        let key_hash: KeyHash = KeyHash::with::<H>(preimage);
+    pub fn put_key_preimage<H: SimpleHasher>(&self, preimage: &Preimage) {
+        let key_hash: KeyHash = KeyHash::with::<H>(preimage.key());
         self.data
             .write()
             .preimages
