@@ -11,7 +11,10 @@ use crate::{
 /// You should first write the data to the cache and write the data
 /// to the database in bulk after the end of a set of operations.
 pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
-    fn get(&self, node_key: &NodeKey) -> Result<Option<Node>>;
+    /// Get the associated `OwnedValue` to a given `KeyHash` at a `Version` threshold.
+    ///
+    /// Wrapper for `get_value_option`.
+    fn get(&self, max_version: Version, node_key: KeyHash) -> Result<Option<OwnedValue>>;
 
     /// Insert data into the cache.
     fn insert(&self, key: Key, value: Vec<u8>) -> Result<()>;

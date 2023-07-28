@@ -59,9 +59,8 @@ impl Default for MockTreeStore {
 }
 
 impl VersionedDatabase for MockTreeStore {
-    // val
-    fn get(&self, node_key: &NodeKey) -> Result<Option<Node>> {
-        Ok(self.get_node_option(node_key).expect("failed to get value"))
+    fn get(&self, max_version: Version, key_hash: KeyHash) -> Result<Option<OwnedValue>> {
+        self.get_value_option(max_version, key_hash)
     }
 
     // use put set method
