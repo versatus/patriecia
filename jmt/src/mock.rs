@@ -64,10 +64,12 @@ impl VersionedDatabase for MockTreeStore {
         Ok(self.get_node_option(node_key).expect("failed to get value"))
     }
 
+    // use put set method
     fn insert(&self, key: Key, value: Vec<u8>) -> Result<()> {
         todo!()
     }
 
+    // use put set method without value
     fn remove(&self, key: Key) -> Result<()> {
         todo!()
     }
