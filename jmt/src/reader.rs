@@ -41,7 +41,7 @@ pub trait TreeReader {
     fn get_rightmost_leaf(&self) -> Result<Option<(NodeKey, LeafNode)>>;
 }
 
-/// The original root hash prior to any changes.
+/// The original state of the root, pre-hash.
 #[derive(Debug, Clone)]
 pub struct Preimage(pub Vec<u8>);
 impl Preimage {
