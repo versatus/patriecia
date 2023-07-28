@@ -29,7 +29,21 @@ pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
     /// Flush data to the DB from the cache.
     fn flush(&self) -> Result<()>;
 
-    // length of what? nodes? values?
+    /// Returns the number of `Some` values within `value_history`
+    /// for all keys at the latest version.
+    ///
+    /// ### Example:
+    /// ```rust, ignore
+    /// use crate::mock::MockTreeStore;
+    /// use sha2::Sha256;
+    ///
+    /// let db = MockTreeStore::default();
+    /// db.data.value_history.insert(KeyHash::with::<Sha256>(b"old_vers"), vec![(1, Some(vec![0u8; 32]))]);
+    /// db.data.value_history.insert(KeyHash::with::<Sha256>(b"new_vers"), vec![(2, Some(vec![0u8; 32]))]);
+    /// db.data.value_history.insert(KeyHash::with::<Sha256>(b"is_empty"), vec![(2, None)]);
+    ///
+    /// assert_eq!(db.len(), 1);
+    /// ```
     fn len(&self) -> Result<usize>;
 
     /// Replaces `Database::values()`. Returns a clone of the nodes HashMap which

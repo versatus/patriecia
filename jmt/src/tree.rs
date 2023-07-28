@@ -64,6 +64,9 @@ where
     }
 
     fn remove(&mut self, key: KeyHash) -> Result<bool> {
+        // just remove this method
+        // wrap put value set
+        // create new implementation that actually directly removes things
         todo!()
     }
 

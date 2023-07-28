@@ -34,6 +34,7 @@ struct MockTreeStoreInner {
     nodes: HashMap<NodeKey, Node>,
     stale_nodes: BTreeSet<StaleNodeIndex>,
     value_history: HashMap<KeyHash, Vec<(Version, Option<OwnedValue>)>>,
+    /// Key is a KeyHash of the Preimage, and value is the Preimage itself
     preimages: HashMap<KeyHash, Preimage>,
 }
 
@@ -58,6 +59,7 @@ impl Default for MockTreeStore {
 }
 
 impl VersionedDatabase for MockTreeStore {
+    // val
     fn get(&self, node_key: &NodeKey) -> Result<Option<Node>> {
         Ok(self.get_node_option(node_key).expect("failed to get value"))
     }
@@ -75,7 +77,11 @@ impl VersionedDatabase for MockTreeStore {
     }
 
     fn len(&self) -> Result<usize> {
-        Ok(self.num_nodes())
+        Ok(self
+            .value_history()
+            .values()
+            .filter(|vals| vals.last().and_then(|(_, val)| val.as_ref()).is_some())
+            .count())
     }
 
     fn nodes(&self) -> HashMap<NodeKey, Node> {
