@@ -1,36 +1,67 @@
-use anyhow::Result;
-use pmt::Key;
-use std::collections::HashMap;
-
 use crate::{
-    storage::{Node, NodeBatch, NodeKey},
+    storage::{Node, NodeKey, TreeUpdateBatch},
     KeyHash, OwnedValue, Version,
 };
+use anyhow::Result;
+use std::collections::HashMap;
 
-/// "DB" defines the "trait" of trie and database interaction.
-/// You should first write the data to the cache and write the data
-/// to the database in bulk after the end of a set of operations.
+/// Defines the interaction between a database and the node versioning strategy
+/// of the `JellyfishMerkleTree`.
 pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
-    /// Get the associated `OwnedValue` to a given `KeyHash` at a `Version` threshold.
-    ///
-    /// Wrapper for `get_value_option`.
+    /// Get the associated `OwnedValue` to a given `KeyHash`, and `Version` threshold.
     fn get(&self, max_version: Version, node_key: KeyHash) -> Result<Option<OwnedValue>>;
 
-    /// Insert data into the cache.
-    fn insert(&self, key: Key, value: Vec<u8>) -> Result<()>;
+    /// A convenience wrapper for `VersionedDatabase::update_batch` when updating singular key-value pairs.
+    ///
+    /// Replaces `Database::insert()` & `Database::Remove()` since a `VersionedDatabase` relies on
+    /// versioning that the `JellyfishMerkleTree` provides. To insert, give `Some(v)` & to remove give `None`.
+    ///
+    /// To get an update batch, use `JellyfishMerkleTree::put_value_set(s)`.
+    ///
+    /// ### Example:
+    /// Based on [`jmt::tests::helper::init_mock_db_with_deletions_afterwards`](jmt/src/tests/helper.rs).
+    ///
+    /// ```rust, ignore
+    /// use crate::mock::MockTreeStore;
+    /// use sha2::Sha256;
+    /// use crate::Sha256Jmt;
+    ///
+    /// let to_insert = HashMap::from(HashKey::with::<Sha256>(b"temp"), Some(vec![0u8; 32]));
+    /// let to_remove = HashMap::from(HashKey::with::<Sha256>(b"temp"), None);
+    /// let db = MockTreeStore::default();
+    /// let tree = Sha256Jmt::new(&db);
+    ///
+    /// for (i, (key, value)) in to_insert.clone().into_iter().enumerate() {
+    ///     let (_root_hash, write_batch) = tree
+    ///         .put_value_set(vec![(key, value)], i as Version)
+    ///         .unwrap();
+    ///     db.update(write_batch).unwrap();
+    /// }
+    /// assert!(!db.is_empty());
+    ///
+    /// let after_insertions_version = kvs.len();
+    /// for (i, (key, value)) in to_remove.clone().into_iter().enumerate() {
+    ///     let (_root_hash, write_batch) = tree
+    ///         .put_value_set(
+    ///             vec![(key, value)],
+    ///             (after_insertions_version + i) as Version
+    ///         )
+    ///         .unwrap();
+    ///     db.update(write_batch).unwrap();
+    /// }
+    /// assert!(db.is_empty());
+    /// ```
+    fn update(&self, tree_update_batch: TreeUpdateBatch) -> Result<()> {
+        self.update_batch(tree_update_batch)
+    }
 
-    /// Remove data with given key.
-    fn remove(&self, key: Key) -> Result<()>;
-
-    /// Insert a batch of data into the cache.
-    fn insert_batch(&self, node_batch: &NodeBatch) -> Result<()>;
-
-    /// Remove a batch of data from the cache.
-    fn remove_batch(&self, keys: &[Vec<u8>]) -> Result<()>;
-
-    // TODO: figure if flush is actually necessary
-    /// Flush data to the DB from the cache.
-    fn flush(&self) -> Result<()>;
+    /// Writes batch updates to the tree & db.
+    ///
+    /// To get an update batch, use `JellyfishMerkleTree::put_value_set(s)`.
+    ///
+    /// See [`jmt::tests::jellyfish_merkle::test_batch_insertion`](jmt/src/tests/jellyfish_merkle.rs)
+    /// for a detailed example.
+    fn update_batch(&self, tree_update_batch: TreeUpdateBatch) -> Result<()>;
 
     /// Returns the number of `Some` values within `value_history`
     /// for all keys at the latest version.
@@ -47,7 +78,12 @@ pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
     ///
     /// assert_eq!(db.len(), 1);
     /// ```
-    fn len(&self) -> Result<usize>;
+    fn len(&self) -> usize {
+        self.value_history()
+            .values()
+            .filter(|vals| vals.last().and_then(|(_, val)| val.as_ref()).is_some())
+            .count()
+    }
 
     /// Replaces `Database::values()`. Returns a clone of the nodes HashMap which
     /// has a `.values()` method returning `Values<NodeKey, Node>`
@@ -69,6 +105,9 @@ pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
     /// for iteration over `jmt::VersionedDatabase`.
     fn value_history(&self) -> HashMap<KeyHash, Vec<(Version, Option<OwnedValue>)>>;
 
-    // values is empty? which part of DB is this checking?
-    fn is_empty(&self) -> Result<bool>;
+    /// Returns true if there are no nodes with `OwnedValue`s for the latest
+    /// `Version` in `Database::value_history()`
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }

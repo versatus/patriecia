@@ -6,7 +6,6 @@
 use alloc::{collections::BTreeSet, vec::Vec};
 use anyhow::{bail, ensure, Result};
 use parking_lot::RwLock;
-use pmt::Key;
 use thiserror::Error;
 
 #[cfg(not(feature = "std"))]
@@ -63,48 +62,20 @@ impl VersionedDatabase for MockTreeStore {
         self.get_value_option(max_version, key_hash)
     }
 
-    // use put set method
-    fn insert(&self, key: Key, value: Vec<u8>) -> Result<()> {
-        todo!()
+    fn update_batch(&self, tree_update_batch: TreeUpdateBatch) -> Result<()> {
+        self.write_tree_update_batch(tree_update_batch)
     }
 
-    // use put set method without value
-    fn remove(&self, key: Key) -> Result<()> {
-        todo!()
-    }
-
-    fn flush(&self) -> Result<()> {
-        todo!()
-    }
-
-    fn len(&self) -> Result<usize> {
-        Ok(self
-            .value_history()
-            .values()
-            .filter(|vals| vals.last().and_then(|(_, val)| val.as_ref()).is_some())
-            .count())
-    }
-
+    // NOTE: This method exposes a private type which is all nodes of a tree
+    // and should consider being removed or only used for testing purposes.
     fn nodes(&self) -> HashMap<NodeKey, Node> {
         self.data.read().nodes.clone()
     }
 
+    // NOTE: This method exposes a private type which is the entire history of a tree
+    // and should consider being removed or only used for testing purposes.
     fn value_history(&self) -> HashMap<KeyHash, Vec<(Version, Option<OwnedValue>)>> {
         self.data.read().value_history.clone()
-    }
-
-    fn is_empty(&self) -> Result<bool> {
-        Ok(self.num_nodes() == 0)
-    }
-
-    fn insert_batch(&self, node_batch: &NodeBatch) -> Result<()> {
-        Ok(self
-            .write_node_batch(node_batch)
-            .expect("failed to write node batch to: {self:?}"))
-    }
-
-    fn remove_batch(&self, keys: &[Vec<u8>]) -> Result<()> {
-        todo!()
     }
 }
 
