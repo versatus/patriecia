@@ -79,7 +79,7 @@ where
     }
 
     fn get_proof(&self, key: KeyHash, version: Version) -> Result<SparseMerkleProof<H>> {
-        todo!()
+        Ok(self.get_with_proof(key, version)?.1)
     }
 
     fn verify_proof(
