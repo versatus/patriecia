@@ -11,7 +11,7 @@ use std::collections::HashMap;
 use anyhow::{bail, ensure, format_err, Context, Result};
 use sha2::Sha256;
 
-use crate::trie::Jmt;
+use crate::trie::TrieInterface;
 use crate::{
     node_type::{Child, Children, InternalNode, LeafNode, Node, NodeKey, NodeType},
     storage::{TreeReader, TreeUpdateBatch},
@@ -46,36 +46,13 @@ pub struct JellyfishMerkleTree<'a, R: TreeReader + VersionedDatabase, H: SimpleH
 #[cfg(feature = "ics23")]
 pub mod ics23_impl;
 
-impl<'a, R, H> Jmt<R, H> for JellyfishMerkleTree<'a, R, H>
+impl<'a, R, H> TrieInterface<R, H> for JellyfishMerkleTree<'a, R, H>
 where
     R: TreeReader + VersionedDatabase,
     H: SimpleHasher,
 {
     fn get(&self, key: KeyHash, version: Version) -> Result<Option<OwnedValue>> {
-        self.get_without_proof(key, version)
-    }
-
-    fn contains(&self, key: KeyHash, version: Version) -> Result<bool> {
-        Ok(self.get(key, version)?.is_some())
-    }
-
-    fn insert(&mut self, key: NodeKey, version: Version, value: Option<ValueHash>) -> Result<()> {
-        todo!()
-    }
-
-    fn remove(&mut self, key_hash: KeyHash) -> Result<bool> {
-        // just remove this method
-        // wrap put value set
-        // create new implementation that actually directly removes things
-        todo!()
-    }
-
-    fn root_hash(&self, version: Version) -> Result<RootHash> {
-        self.get_root_hash(version)
-    }
-
-    fn commit(&mut self) -> Result<H> {
-        todo!()
+        self.reader.get_value_option(version, key)
     }
 
     fn get_proof(&self, key: KeyHash, version: Version) -> Result<SparseMerkleProof<H>> {
@@ -84,11 +61,13 @@ where
 
     fn verify_proof(
         &self,
-        root_hash: RootHash,
-        key: KeyHash,
+        element_key: KeyHash,
+        version: Version,
+        expected_root_hash: RootHash,
         proof: SparseMerkleProof<H>,
-    ) -> Result<Option<OwnedValue>> {
-        todo!()
+    ) -> Result<()> {
+        let (element_value, _) = self.get_with_proof(element_key, version)?;
+        proof.verify(expected_root_hash, element_key, element_value)
     }
 }
 
@@ -1178,10 +1157,6 @@ where
             }
         }
         bail!("Jellyfish Merkle tree has cyclic graph inside.");
-    }
-
-    fn get_without_proof(&self, key: KeyHash, version: Version) -> Result<Option<OwnedValue>> {
-        self.reader.get_value_option(version, key)
     }
 
     /// Gets the proof that shows a list of keys up to `rightmost_key_to_prove` exist at `version`.

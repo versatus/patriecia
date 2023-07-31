@@ -8,7 +8,7 @@ use crate::{
     storage::HasPreimage,
     storage::TreeReader,
     tree::ExclusionProof,
-    trie::Jmt,
+    trie::TrieInterface,
     JellyfishMerkleTree, KeyHash, OwnedValue, SimpleHasher, Version,
     SPARSE_MERKLE_PLACEHOLDER_HASH,
 };

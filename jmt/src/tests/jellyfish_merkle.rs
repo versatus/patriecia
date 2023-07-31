@@ -21,7 +21,7 @@ use crate::{
         test_get_range_proof, test_get_with_proof, test_get_with_proof_with_deletions,
         test_get_with_proof_with_distinct_last_nibble,
     },
-    trie::Jmt,
+    trie::TrieInterface,
     types::{
         nibble::{nibble_path::NibblePath, Nibble},
         Version,

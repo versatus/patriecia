@@ -37,7 +37,7 @@ mod tests {
         nibbles::Nibbles,
         serde_hash::{keccak, H256},
     };
-    use crate::{InnerTrie, Pmt};
+    use crate::{InnerTrie, Trie};
 
     #[test]
     fn test_trie_insert() {

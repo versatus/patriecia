@@ -17,7 +17,7 @@ use crate::{
     node::{BranchNode, ExtensionNode, HashNode, Node},
     result::Result,
     serde_hash::{keccak, H256},
-    trie::Pmt,
+    trie::Trie,
     TrieIterator,
 };
 
@@ -109,7 +109,7 @@ where
     }
 }
 
-impl<D> Pmt<D> for InnerTrie<D>
+impl<D> Trie<D> for InnerTrie<D>
 where
     D: Database,
 {
