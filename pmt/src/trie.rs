@@ -3,6 +3,7 @@ use crate::db::Database;
 use crate::result::Result;
 use crate::serde_hash::H256;
 
+#[deprecated(since = "1.0.0", note = "replaced by VersionedTrie")]
 pub trait Trie<D: Database> {
     /// Returns the value for key stored in the trie.
     fn get(&self, key: Key) -> Result<Option<OwnedValue>>;

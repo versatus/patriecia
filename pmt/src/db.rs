@@ -12,6 +12,7 @@ use crate::error::MemDBError;
 /// "DB" defines the "trait" of trie and database interaction.
 /// You should first write the data to the cache and write the data
 /// to the database in bulk after the end of a set of operations.
+#[deprecated(since = "1.0.0", note = "replaced by VersionedDatabase")]
 pub trait Database: Send + Sync + Clone + Default + std::fmt::Debug {
     type Error: Error;
 
@@ -56,6 +57,7 @@ pub trait Database: Send + Sync + Clone + Default + std::fmt::Debug {
     fn is_empty(&self) -> Result<bool, Self::Error>;
 }
 
+#[deprecated(since = "1.0.0", note = "replaced by MockTreeStore")]
 #[derive(Default, Debug, Clone)]
 pub struct MemoryDB {
     // If "light" is true, the data is deleted from the database at the time of submission.
