@@ -11,7 +11,7 @@ use std::collections::HashMap;
 use anyhow::{bail, ensure, format_err, Context, Result};
 use sha2::Sha256;
 
-use crate::trie::TrieInterface;
+use crate::trie::VersionedTrie;
 use crate::{
     node_type::{Child, Children, InternalNode, LeafNode, Node, NodeKey, NodeType},
     storage::{TreeReader, TreeUpdateBatch},
@@ -46,7 +46,7 @@ pub struct JellyfishMerkleTree<'a, R: TreeReader + VersionedDatabase, H: SimpleH
 #[cfg(feature = "ics23")]
 pub mod ics23_impl;
 
-impl<'a, R, H> TrieInterface<R, H> for JellyfishMerkleTree<'a, R, H>
+impl<'a, R, H> VersionedTrie<R, H> for JellyfishMerkleTree<'a, R, H>
 where
     R: TreeReader + VersionedDatabase,
     H: SimpleHasher,

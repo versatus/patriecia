@@ -11,7 +11,7 @@ use crate::{
     restore::{JellyfishMerkleRestore, StateSnapshotReceiver},
     storage::TreeReader,
     tests::helper::init_mock_db,
-    trie::TrieInterface,
+    trie::VersionedTrie,
     KeyHash, OwnedValue, RootHash, Sha256Jmt, Version,
 };
 

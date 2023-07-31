@@ -5,7 +5,7 @@ use crate::{
 use anyhow::Result;
 
 /// Exposes additional convenience methods for the [`JellyfishMerkleTree`](./jmt/tree).
-pub trait TrieInterface<R, H>
+pub trait VersionedTrie<R, H>
 where
     R: TreeReader + VersionedDatabase,
     H: SimpleHasher,
