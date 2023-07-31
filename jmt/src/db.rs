@@ -103,6 +103,16 @@ pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
     /// Replaces `Database::values()`. Returns a clone of the value history HashMap which
     /// has a `.values()` method returning `Values<KeyHash, Vec<(Version, Option<OwnedValue>)>>`
     /// for iteration over `jmt::VersionedDatabase`.
+    ///
+    /// ### Example:
+    /// ```rust, ignore
+    /// use crate::mock::MockTreeStore;
+    ///
+    /// let db = MockTreeStore::default();
+    /// for (key, (ver, val)) in db.value_history().values() {
+    ///     println!("{key}: {ver} - {val}");
+    /// }
+    /// ```
     fn value_history(&self) -> HashMap<KeyHash, Vec<(Version, Option<OwnedValue>)>>;
 
     /// Returns true if there are no nodes with `OwnedValue`s for the latest
