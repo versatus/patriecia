@@ -1,14 +1,17 @@
+use crate::db::VersionedDatabase;
 use alloc::{collections::BTreeMap, vec::Vec};
 use alloc::{format, vec};
 use core::{cmp::Ordering, convert::TryInto};
 #[cfg(not(feature = "std"))]
 use hashbrown::HashMap;
+use pmt::H256;
 #[cfg(feature = "std")]
 use std::collections::HashMap;
 
 use anyhow::{bail, ensure, format_err, Context, Result};
 use sha2::Sha256;
 
+use crate::trie::VersionedTrie;
 use crate::{
     node_type::{Child, Children, InternalNode, LeafNode, Node, NodeKey, NodeType},
     storage::{TreeReader, TreeUpdateBatch},
@@ -28,10 +31,13 @@ use crate::{
 /// A [`JellyfishMerkleTree`] instantiated using the `sha2::Sha256` hasher.
 /// This is a sensible default choice for most applications.
 pub type Sha256Jmt<'a, R> = JellyfishMerkleTree<'a, R, Sha256>;
+/// A [`JellyfishMerkleTree`] instantiated using a modified `keccak_hash::H256` hasher.
+/// This is the default choice for the vrrb protocol.
+pub type H256Jmt<'a, R> = JellyfishMerkleTree<'a, R, H256>;
 
 /// A Jellyfish Merkle tree data structure, parameterized by a [`TreeReader`] `R`
 /// and a [`SimpleHasher`] `H`. See [`crate`] for description.
-pub struct JellyfishMerkleTree<'a, R, H: SimpleHasher> {
+pub struct JellyfishMerkleTree<'a, R: TreeReader + VersionedDatabase, H: SimpleHasher> {
     reader: &'a R,
     leaf_count_migration: bool,
     _phantom_hasher: PhantomHasher<H>,
@@ -40,9 +46,34 @@ pub struct JellyfishMerkleTree<'a, R, H: SimpleHasher> {
 #[cfg(feature = "ics23")]
 pub mod ics23_impl;
 
+impl<'a, R, H> VersionedTrie<R, H> for JellyfishMerkleTree<'a, R, H>
+where
+    R: TreeReader + VersionedDatabase,
+    H: SimpleHasher,
+{
+    fn get(&self, key: KeyHash, version: Version) -> Result<Option<OwnedValue>> {
+        self.reader.get_value_option(version, key)
+    }
+
+    fn get_proof(&self, key: KeyHash, version: Version) -> Result<SparseMerkleProof<H>> {
+        Ok(self.get_with_proof(key, version)?.1)
+    }
+
+    fn verify_proof(
+        &self,
+        element_key: KeyHash,
+        version: Version,
+        expected_root_hash: RootHash,
+        proof: SparseMerkleProof<H>,
+    ) -> Result<()> {
+        let (element_value, _) = self.get_with_proof(element_key, version)?;
+        proof.verify(expected_root_hash, element_key, element_value)
+    }
+}
+
 impl<'a, R, H> JellyfishMerkleTree<'a, R, H>
 where
-    R: 'a + TreeReader,
+    R: 'a + TreeReader + VersionedDatabase,
     H: SimpleHasher,
 {
     /// Creates a `JellyfishMerkleTree` backed by the given [`TreeReader`].
@@ -1128,10 +1159,6 @@ where
         bail!("Jellyfish Merkle tree has cyclic graph inside.");
     }
 
-    fn get_without_proof(&self, key: KeyHash, version: Version) -> Result<Option<OwnedValue>> {
-        self.reader.get_value_option(version, key)
-    }
-
     /// Gets the proof that shows a list of keys up to `rightmost_key_to_prove` exist at `version`.
     pub fn get_range_proof(
         &self,
@@ -1157,14 +1184,6 @@ where
             .rev()
             .collect();
         Ok(SparseMerkleRangeProof::new(siblings))
-    }
-
-    /// Returns the value (if applicable), without any proof.
-    ///
-    /// Equivalent to [`get_with_proof`](JellyfishMerkleTree::get_with_proof) and dropping the
-    /// proof, but more efficient.
-    pub fn get(&self, key: KeyHash, version: Version) -> Result<Option<OwnedValue>> {
-        self.get_without_proof(key, version)
     }
 
     fn get_root_node(&self, version: Version) -> Result<Node> {

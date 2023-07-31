@@ -313,6 +313,11 @@ impl Children {
     borsh::BorshSerialize,
     borsh::BorshDeserialize,
 )]
+
+/// Represents a subtree with up to 16 leaf nodes.
+///
+/// See the implementation of [`Arbitrary`] on this type
+/// for diagrams and explanations of its use.
 pub struct InternalNode {
     /// Up to 16 children.
     children: Children,
@@ -751,6 +756,8 @@ enum NodeTag {
 #[derive(Clone, Debug, Eq, PartialEq, BorshSerialize, BorshDeserialize, Serialize, Deserialize)]
 pub enum Node {
     /// Represents `null`.
+    ///
+    /// Two node types only are not able to gracefully handle a special case when the whole tree is empty.
     Null,
     /// A wrapper of [`InternalNode`].
     Internal(InternalNode),

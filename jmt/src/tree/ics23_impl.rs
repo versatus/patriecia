@@ -3,10 +3,12 @@ use alloc::vec::Vec;
 use anyhow::Result;
 
 use crate::{
+    db::VersionedDatabase,
     proof::{SparseMerkleProof, INTERNAL_DOMAIN_SEPARATOR, LEAF_DOMAIN_SEPARATOR},
     storage::HasPreimage,
     storage::TreeReader,
     tree::ExclusionProof,
+    trie::VersionedTrie,
     JellyfishMerkleTree, KeyHash, OwnedValue, SimpleHasher, Version,
     SPARSE_MERKLE_PLACEHOLDER_HASH,
 };
@@ -75,7 +77,7 @@ fn sparse_merkle_proof_to_ics23_existence_proof<H: SimpleHasher>(
 
 impl<'a, R, H> JellyfishMerkleTree<'a, R, H>
 where
-    R: 'a + TreeReader + HasPreimage,
+    R: 'a + TreeReader + HasPreimage + VersionedDatabase,
     H: SimpleHasher,
 {
     fn exclusion_proof_to_ics23_nonexistence_proof(
@@ -102,7 +104,7 @@ where
                     .ok_or(anyhow::anyhow!("missing value for key hash"))?;
 
                 let leftmost_right_proof = sparse_merkle_proof_to_ics23_existence_proof(
-                    key_left_proof.clone(),
+                    key_left_proof.key().clone(),
                     value.clone(),
                     leftmost_right_proof,
                 );
@@ -129,7 +131,7 @@ where
                     .preimage(leftmost_key_hash)?
                     .ok_or(anyhow::anyhow!("missing preimage for key hash"))?;
                 let leftmost_right_proof = sparse_merkle_proof_to_ics23_existence_proof(
-                    key_leftmost.clone(),
+                    key_leftmost.key().clone(),
                     value_leftmost.clone(),
                     leftmost_right_proof,
                 );
@@ -146,7 +148,7 @@ where
                     .preimage(rightmost_key_hash)?
                     .ok_or(anyhow::anyhow!("missing preimage for key hash"))?;
                 let rightmost_left_proof = sparse_merkle_proof_to_ics23_existence_proof(
-                    key_rightmost.clone(),
+                    key_rightmost.key().clone(),
                     value_rightmost.clone(),
                     rightmost_left_proof,
                 );
@@ -172,7 +174,7 @@ where
                     .preimage(rightmost_key_hash)?
                     .ok_or(anyhow::anyhow!("missing preimage for key hash"))?;
                 let rightmost_left_proof = sparse_merkle_proof_to_ics23_existence_proof(
-                    key_rightmost.clone(),
+                    key_rightmost.key().clone(),
                     value_rightmost.clone(),
                     rightmost_left_proof,
                 );
@@ -258,7 +260,7 @@ mod tests {
     use sha2::Sha256;
 
     use super::*;
-    use crate::{mock::MockTreeStore, KeyHash, SPARSE_MERKLE_PLACEHOLDER_HASH};
+    use crate::{mock::MockTreeStore, reader::Preimage, KeyHash, SPARSE_MERKLE_PLACEHOLDER_HASH};
 
     #[test]
     #[should_panic]
@@ -281,7 +283,7 @@ mod tests {
 
         // Ensure that the tree contains at least one key-value pair
         kvs.push((KeyHash::with::<Sha256>(b"key"), Some(b"value1".to_vec())));
-        db.put_key_preimage(&b"key".to_vec());
+        db.put_key_preimage::<Sha256>(&Preimage(b"key".to_vec()));
 
         for key_preimage in keys {
             // Since we hardcode the check for key, ensure that it's not inserted randomly by proptest
@@ -291,7 +293,7 @@ mod tests {
             let key_hash = KeyHash::with::<Sha256>(key_preimage.as_slice());
             let value = vec![0u8; 32];
             kvs.push((key_hash, Some(value)));
-            db.put_key_preimage(&key_preimage.to_vec());
+            db.put_key_preimage::<Sha256>(&Preimage(key_preimage.to_vec()));
         }
 
         let (new_root_hash, batch) = tree.put_value_set(kvs, 0).unwrap();

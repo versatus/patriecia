@@ -1,7 +1,7 @@
 [package]
 name = "jmt"
 description = "Jellyfish Merkle Tree"
-version = "0.1.0"
+version = "1.0.0"
 authors = [
     "VRRB Labs <info@vrrb.io>",
     "Penumbra Labs <team@penumbra.zone>",
@@ -26,13 +26,14 @@ itertools = { workspace = true }
 mirai-annotations = { workspace = true }
 num-derive = { workspace = true }
 num-traits = { workspace = true }
+pmt = { path = "../pmt" }
 serde = { workspace = true }
 sha2 = { workspace = true }
 hex = { workspace = true }
 tracing = { workspace = true }
 ics23 = { version = "0.10.0", optional = true }
-parking_lot = { version = "0.12.1", optional = true } 
-thiserror = { version = "1.0.32", optional = true } 
+parking_lot = { version = "0.12.1", optional = true }
+thiserror = { version = "1.0.32", optional = true }
 
 [dev-dependencies]
 hex = { workspace = true }

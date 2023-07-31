@@ -3,31 +3,38 @@
 
 //! A mock, in-memory tree store useful for testing.
 
-use alloc::{collections::BTreeSet, vec};
-use parking_lot::RwLock;
-
-use alloc::vec::Vec;
+use alloc::{collections::BTreeSet, vec::Vec};
 use anyhow::{bail, ensure, Result};
-use sha2::Sha256;
+use parking_lot::RwLock;
+use thiserror::Error;
 
 #[cfg(not(feature = "std"))]
 use hashbrown::{hash_map::Entry, HashMap};
 #[cfg(feature = "std")]
-use std::collections::{hash_map::Entry, HashMap};
+use std::{
+    collections::{hash_map::Entry, HashMap},
+    sync::Arc,
+};
 
 use crate::{
+    db::VersionedDatabase,
     node_type::{LeafNode, Node, NodeKey},
+    reader::Preimage,
     storage::{HasPreimage, NodeBatch, StaleNodeIndex, TreeReader, TreeUpdateBatch, TreeWriter},
     types::Version,
-    KeyHash, OwnedValue,
+    KeyHash, OwnedValue, SimpleHasher,
 };
+
+#[derive(Error, Debug, Clone)]
+pub enum MockTreeStoreError {}
 
 #[derive(Default, Debug)]
 struct MockTreeStoreInner {
     nodes: HashMap<NodeKey, Node>,
     stale_nodes: BTreeSet<StaleNodeIndex>,
     value_history: HashMap<KeyHash, Vec<(Version, Option<OwnedValue>)>>,
-    preimages: HashMap<KeyHash, Vec<u8>>,
+    /// Key is a KeyHash of the Preimage, and value is the Preimage itself
+    preimages: HashMap<KeyHash, Preimage>,
 }
 
 /// A mock, in-memory tree store useful for testing.
@@ -35,17 +42,36 @@ struct MockTreeStoreInner {
 /// The tree store is internally represented with a `HashMap`.  This structure
 /// is exposed for use only by downstream crates' tests, and it should obviously
 /// not be used in production.
+#[derive(Debug, Clone)]
 pub struct MockTreeStore {
-    data: RwLock<MockTreeStoreInner>,
+    data: Arc<RwLock<MockTreeStoreInner>>,
     allow_overwrite: bool,
 }
 
 impl Default for MockTreeStore {
     fn default() -> Self {
         Self {
-            data: RwLock::new(Default::default()),
+            data: Arc::new(RwLock::new(Default::default())),
             allow_overwrite: false,
         }
+    }
+}
+
+impl VersionedDatabase for MockTreeStore {
+    fn get(&self, max_version: Version, key_hash: KeyHash) -> Result<Option<OwnedValue>> {
+        self.get_value_option(max_version, key_hash)
+    }
+
+    fn update_batch(&self, tree_update_batch: TreeUpdateBatch) -> Result<()> {
+        self.write_tree_update_batch(tree_update_batch)
+    }
+
+    fn nodes(&self) -> HashMap<NodeKey, Node> {
+        self.data.read().nodes.clone()
+    }
+
+    fn value_history(&self) -> HashMap<KeyHash, Vec<(Version, Option<OwnedValue>)>> {
+        self.data.read().value_history.clone()
     }
 }
 
@@ -91,7 +117,7 @@ impl TreeReader for MockTreeStore {
 }
 
 impl HasPreimage for MockTreeStore {
-    fn preimage(&self, key_hash: KeyHash) -> Result<Option<Vec<u8>>> {
+    fn preimage(&self, key_hash: KeyHash) -> Result<Option<Preimage>> {
         Ok(self.data.read().preimages.get(&key_hash).cloned())
     }
 }
@@ -167,8 +193,8 @@ impl MockTreeStore {
         put_value(&mut locked.value_history, version, key_hash, Some(value))
     }
 
-    pub fn put_key_preimage(&self, preimage: &Vec<u8>) {
-        let key_hash: KeyHash = KeyHash::with::<Sha256>(preimage);
+    pub fn put_key_preimage<H: SimpleHasher>(&self, preimage: &Preimage) {
+        let key_hash: KeyHash = KeyHash::with::<H>(preimage.key());
         self.data
             .write()
             .preimages

@@ -81,11 +81,13 @@ use sha2::Digest;
 use thiserror::Error;
 
 mod bytes32ext;
+mod db;
 mod iterator;
 mod node_type;
 mod reader;
 mod tree;
 mod tree_cache;
+mod trie;
 mod types;
 mod writer;
 
