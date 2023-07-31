@@ -71,7 +71,7 @@ where
     }
 
     fn root_hash(&self, version: Version) -> Result<RootHash> {
-        todo!()
+        self.get_root_hash(version)
     }
 
     fn commit(&mut self) -> Result<H> {
