@@ -16,7 +16,7 @@ pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
     /// Replaces `Database::insert()` & `Database::Remove()` since a `VersionedDatabase` relies on
     /// versioning that the `JellyfishMerkleTree` provides. To insert, give `Some(v)` & to remove give `None`.
     ///
-    /// To get an update batch, use `JellyfishMerkleTree::put_value_set(s)`.
+    /// *Note:* To get batch updates to apply with this method, use `JellyfishMerkleTree::put_value_set(s)`.
     ///
     /// ### Example:
     /// Based on [`jmt::tests::helper::init_mock_db_with_deletions_afterwards`](jmt/src/tests/helper.rs).
@@ -55,9 +55,9 @@ pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
         self.update_batch(tree_update_batch)
     }
 
-    /// Writes batch updates to the tree & db.
+    /// Wrapper around [`TreeWriter::write_node_batch`](jmt/src/writer.rs) that also updates stale nodes.
     ///
-    /// To get an update batch, use `JellyfishMerkleTree::put_value_set(s)`.
+    /// *Note:* To get batch updates to apply with this method, use `JellyfishMerkleTree::put_value_set(s)`.
     ///
     /// See [`jmt::tests::jellyfish_merkle::test_batch_insertion`](jmt/src/tests/jellyfish_merkle.rs)
     /// for a detailed example.
