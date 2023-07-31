@@ -8,3 +8,4 @@ mod node_type;
 mod restore;
 mod tree_cache;
 mod vectors;
+mod versioned_db;

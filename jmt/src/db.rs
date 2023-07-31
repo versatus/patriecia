@@ -72,10 +72,35 @@ pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
     /// use sha2::Sha256;
     ///
     /// let db = MockTreeStore::default();
-    /// db.data.value_history.insert(KeyHash::with::<Sha256>(b"old_vers"), vec![(1, Some(vec![0u8; 32]))]);
-    /// db.data.value_history.insert(KeyHash::with::<Sha256>(b"new_vers"), vec![(2, Some(vec![0u8; 32]))]);
-    /// db.data.value_history.insert(KeyHash::with::<Sha256>(b"is_empty"), vec![(2, None)]);
+    /// let tree = Sha256Jmt::new(&db);
     ///
+    /// // add old set version 0
+    /// let key = b"old_vers";
+    /// let value = vec![0u8; 32];
+    /// let (_new_root_hash, batch) = tree
+    ///     .put_value_set(vec![(KeyHash::with::<Sha256>(key), Some(value.clone()))], 0)
+    ///     .unwrap();
+    ///
+    /// db.write_tree_update_batch(batch).unwrap();
+    /// assert_eq!(db.len(), 1);
+    ///
+    /// // add new set version 1
+    /// let key = b"new_vers";
+    /// let value = vec![0u8; 32];
+    /// let (_new_root_hash, batch) = tree
+    ///     .put_value_set(vec![(KeyHash::with::<Sha256>(key), Some(value.clone()))], 1)
+    ///     .unwrap();
+    ///
+    /// db.write_tree_update_batch(batch).unwrap();
+    /// assert_eq!(db.len(), 2);
+    ///
+    /// // remove old set version 2
+    /// let key = b"old_vers";
+    /// let (_new_root_hash, batch) = tree
+    ///     .put_value_set(vec![(KeyHash::with::<Sha256>(key), None)], 2)
+    ///     .unwrap();
+    ///
+    /// db.write_tree_update_batch(batch).unwrap();
     /// assert_eq!(db.len(), 1);
     /// ```
     fn len(&self) -> usize {
