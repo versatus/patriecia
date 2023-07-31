@@ -66,14 +66,10 @@ impl VersionedDatabase for MockTreeStore {
         self.write_tree_update_batch(tree_update_batch)
     }
 
-    // NOTE: This method exposes a private type which is all nodes of a tree
-    // and should consider being removed or only used for testing purposes.
     fn nodes(&self) -> HashMap<NodeKey, Node> {
         self.data.read().nodes.clone()
     }
 
-    // NOTE: This method exposes a private type which is the entire history of a tree
-    // and should consider being removed or only used for testing purposes.
     fn value_history(&self) -> HashMap<KeyHash, Vec<(Version, Option<OwnedValue>)>> {
         self.data.read().value_history.clone()
     }
