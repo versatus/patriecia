@@ -30,12 +30,12 @@ mod tests {
     };
 
     use rand::{distributions::Alphanumeric, seq::SliceRandom, thread_rng, Rng};
+    use serde_hash::{keccak, H256};
 
     use crate::{
         db::{Database, MemoryDB},
         error::TrieError,
         nibbles::Nibbles,
-        serde_hash::{keccak, H256},
     };
     use crate::{InnerTrie, Trie};
 
