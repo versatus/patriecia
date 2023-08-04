@@ -1,0 +1,14 @@
+[package]
+name = "serde_hash"
+description = "An adaptation of keccak_hash that implements serde's derive macros"
+version = "1.0.0"
+edition = "2021"
+authors = ["VRRB Labs <info@vrrb.io>"]
+
+[lib]
+name = "serde_hash"
+
+[dependencies]
+keccak-hash = { workspace = true }
+fixed-hash = { workspace = true }
+serde = { workspace = true }

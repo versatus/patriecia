@@ -8,7 +8,6 @@ pub mod trie;
 pub mod trie_iterator;
 
 pub mod common;
-pub mod serde_hash;
 pub use common::*;
 pub use db::*;
 pub use error::*;
@@ -20,6 +19,7 @@ pub use trie_iterator::*;
 pub(crate) mod nibbles;
 pub(crate) mod node;
 
+pub use jmt::{db::VersionedDatabase, trie::VersionedTrie};
 pub use serde_hash::H256;
 
 #[cfg(test)]

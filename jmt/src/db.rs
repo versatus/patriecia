@@ -3,6 +3,9 @@ use crate::{
     KeyHash, OwnedValue, Version,
 };
 use anyhow::Result;
+#[cfg(not(feature = "std"))]
+use hashbrown::HashMap;
+#[cfg(feature = "std")]
 use std::collections::HashMap;
 
 /// Defines the interaction between a database and the node versioning strategy

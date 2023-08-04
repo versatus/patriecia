@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
+use serde_hash::H256;
 use thiserror::Error;
 
-use crate::{common::BRANCHING_FACTOR, nibbles::Nibbles, serde_hash::H256};
+use crate::{common::BRANCHING_FACTOR, nibbles::Nibbles};
 
 pub type Link = Box<Node>;
 

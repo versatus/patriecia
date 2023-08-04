@@ -4,7 +4,7 @@ use alloc::{format, vec};
 use core::{cmp::Ordering, convert::TryInto};
 #[cfg(not(feature = "std"))]
 use hashbrown::HashMap;
-use pmt::H256;
+use serde_hash::H256;
 #[cfg(feature = "std")]
 use std::collections::HashMap;
 

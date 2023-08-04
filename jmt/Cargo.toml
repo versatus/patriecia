@@ -19,6 +19,7 @@ mocks = ["dep:parking_lot"]
 std = ["dep:thiserror"]
 
 [dependencies]
+serde_hash = { workspace = true }
 anyhow = { workspace = true }
 borsh = { workspace = true }
 hashbrown = { workspace = true }
@@ -26,7 +27,6 @@ itertools = { workspace = true }
 mirai-annotations = { workspace = true }
 num-derive = { workspace = true }
 num-traits = { workspace = true }
-pmt = { path = "../pmt" }
 serde = { workspace = true }
 sha2 = { workspace = true }
 hex = { workspace = true }

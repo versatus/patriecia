@@ -20,14 +20,19 @@ keccak-hash = { workspace = true }
 parking_lot = { workspace = true }
 hashbrown = { workspace = true }
 fixed-hash = { workspace = true }
+serde_hash = { workspace = true }
+jmt = { workspace = true }
 
 [workspace]
 members = [
     "jmt",
-    "pmt"
+    "pmt",
+    "serde_hash",
 ]
 
 [workspace.dependencies]
+serde_hash = { path = "serde_hash" }
+jmt = { path = "jmt" }
 left-right = "0.11.5"
 keccak-hash = "0.9"
 fixed-hash = "0.7.0"
