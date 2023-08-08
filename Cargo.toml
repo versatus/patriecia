@@ -32,7 +32,7 @@ members = [
 
 [workspace.dependencies]
 serde_hash = { path = "serde_hash" }
-jmt = { path = "jmt" }
+jmt = { path = "jmt", features = ["mocks"] }
 left-right = "0.11.5"
 keccak-hash = "0.9"
 fixed-hash = "0.7.0"

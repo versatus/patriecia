@@ -19,7 +19,10 @@ pub use trie_iterator::*;
 pub(crate) mod nibbles;
 pub(crate) mod node;
 
-pub use jmt::{db::VersionedDatabase, trie::VersionedTrie};
+pub use jmt::{
+    db::VersionedDatabase, mock::MockTreeStore, reader::TreeReader, trie::VersionedTrie,
+    JellyfishMerkleIterator, JellyfishMerkleTree, SimpleHasher,
+};
 pub use serde_hash::H256;
 
 #[cfg(test)]

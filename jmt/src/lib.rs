@@ -84,7 +84,7 @@ mod bytes32ext;
 pub mod db;
 mod iterator;
 mod node_type;
-mod reader;
+pub mod reader;
 mod tree;
 mod tree_cache;
 pub mod trie;
