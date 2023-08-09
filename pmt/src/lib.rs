@@ -20,8 +20,9 @@ pub(crate) mod nibbles;
 pub(crate) mod node;
 
 pub use jmt::{
-    db::VersionedDatabase, mock::MockTreeStore, reader::TreeReader, trie::VersionedTrie, H256Jmt,
-    JellyfishMerkleIterator, JellyfishMerkleTree, KeyHash, OwnedValue, SimpleHasher, Version,
+    db::VersionedDatabase, mock::MockTreeStore, proof::SparseMerkleProof, reader::TreeReader,
+    trie::VersionedTrie, H256Jmt, JellyfishMerkleIterator, JellyfishMerkleTree, KeyHash,
+    OwnedValue, RootHash, Sha256, SimpleHasher, ValueHash, Version,
 };
 pub use serde_hash::H256;
 

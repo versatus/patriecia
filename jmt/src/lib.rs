@@ -96,6 +96,7 @@ pub mod restore;
 
 use bytes32ext::Bytes32Ext;
 pub use iterator::JellyfishMerkleIterator;
+pub use sha2::Sha256;
 #[cfg(feature = "ics23")]
 pub use tree::ics23_impl::ics23_spec;
 pub use tree::{H256Jmt, JellyfishMerkleTree, Sha256Jmt};
