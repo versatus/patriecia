@@ -37,6 +37,7 @@ pub type H256Jmt<'a, R> = JellyfishMerkleTree<'a, R, H256>;
 
 /// A Jellyfish Merkle tree data structure, parameterized by a [`TreeReader`] `R`
 /// and a [`SimpleHasher`] `H`. See [`crate`] for description.
+#[derive(Debug, Clone)]
 pub struct JellyfishMerkleTree<'a, R: TreeReader + VersionedDatabase, H: SimpleHasher> {
     reader: &'a R,
     leaf_count_migration: bool,
