@@ -1,7 +1,6 @@
 // Copyright (c) The Diem Core Contributors
 // SPDX-License-Identifier: Apache-2.0
 #![cfg_attr(not(feature = "std"), no_std)]
-#![forbid(unsafe_code)]
 
 //! This module implements [`JellyfishMerkleTree`] backed by storage module. The tree itself doesn't
 //! persist anything, but realizes the logic of R/W only. The write path will produce all the
@@ -277,7 +276,7 @@ impl<'a> core::fmt::Debug for EscapedByteSlice<'a> {
 
 /// A minimal trait representing a hash function. We implement our own
 /// rather than relying on `Digest` for broader compatibility.
-pub trait SimpleHasher: Sized {
+pub trait SimpleHasher: Sized + Clone {
     /// Creates a new hasher with default state.
     fn new() -> Self;
     /// Ingests the provided data, updating the hasher's state.
@@ -319,7 +318,7 @@ impl<H: SimpleHasher> Default for PhantomHasher<H> {
     }
 }
 
-impl<T: Digest> SimpleHasher for T
+impl<T: Digest + Clone> SimpleHasher for T
 where
     [u8; 32]: From<GenericArray<u8, <T as OutputSizeUser>::OutputSize>>,
 {
