@@ -184,8 +184,9 @@ impl<H: SimpleHasher> JellyfishMerkleRestore<H> {
                 // to recover the partial nodes to the state right before the crash.
                 //
                 // Use of unsafe block to retrieve inner value of the TreeReader.
-                // Necessary to implement Clone.
-                let raw_tree_reader = Arc::into_raw(tree_reader);
+                // Necessary to implement Clone and other traits for TreeReader.
+                // Does not affect the state of the Arc.
+                let raw_tree_reader = Arc::as_ptr(&tree_reader);
                 let recovery_tree = unsafe { &*raw_tree_reader };
                 (
                     Self::recover_partial_nodes(recovery_tree.clone(), version, node_key)?,
