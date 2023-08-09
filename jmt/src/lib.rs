@@ -276,7 +276,7 @@ impl<'a> core::fmt::Debug for EscapedByteSlice<'a> {
 
 /// A minimal trait representing a hash function. We implement our own
 /// rather than relying on `Digest` for broader compatibility.
-pub trait SimpleHasher: Sized + Clone {
+pub trait SimpleHasher: Sized + Clone + Debug {
     /// Creates a new hasher with default state.
     fn new() -> Self;
     /// Ingests the provided data, updating the hasher's state.
@@ -318,7 +318,7 @@ impl<H: SimpleHasher> Default for PhantomHasher<H> {
     }
 }
 
-impl<T: Digest + Clone> SimpleHasher for T
+impl<T: Digest + Clone + Debug> SimpleHasher for T
 where
     [u8; 32]: From<GenericArray<u8, <T as OutputSizeUser>::OutputSize>>,
 {
