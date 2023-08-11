@@ -88,7 +88,7 @@ mod tree;
 mod tree_cache;
 pub mod trie;
 mod types;
-mod writer;
+pub mod writer;
 
 #[cfg(any(test, feature = "mocks"))]
 pub mod mock;

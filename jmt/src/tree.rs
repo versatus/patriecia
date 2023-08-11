@@ -48,7 +48,7 @@ pub struct JellyfishMerkleTree<'a, R: TreeReader + VersionedDatabase, H: SimpleH
 #[cfg(feature = "ics23")]
 pub mod ics23_impl;
 
-impl<'a, R, H> VersionedTrie<R, H> for JellyfishMerkleTree<'a, R, H>
+impl<'a, R, H> VersionedTrie<'a, R, H> for JellyfishMerkleTree<'a, R, H>
 where
     R: TreeReader + VersionedDatabase,
     H: SimpleHasher,
@@ -86,6 +86,10 @@ where
 
     fn version(&self) -> Version {
         self.reader.version()
+    }
+
+    fn reader(&self) -> &'a R {
+        self.reader
     }
 }
 
