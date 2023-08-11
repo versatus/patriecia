@@ -1,4 +1,5 @@
 use crate::db::VersionedDatabase;
+use crate::JellyfishMerkleIterator;
 use alloc::{collections::BTreeMap, vec::Vec};
 use alloc::{format, vec};
 use core::{cmp::Ordering, convert::TryInto};
@@ -6,7 +7,7 @@ use core::{cmp::Ordering, convert::TryInto};
 use hashbrown::HashMap;
 use serde_hash::H256;
 #[cfg(feature = "std")]
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use anyhow::{bail, ensure, format_err, Context, Result};
 use sha2::Sha256;
@@ -69,6 +70,22 @@ where
     ) -> Result<()> {
         let (element_value, _) = self.get_with_proof(element_key, version)?;
         proof.verify(expected_root_hash, element_key, element_value)
+    }
+
+    fn iter(&self, version: Version, starting_key: KeyHash) -> Result<JellyfishMerkleIterator<R>> {
+        JellyfishMerkleIterator::new(Arc::new(self.reader.clone()), version, starting_key)
+    }
+
+    fn len(&self) -> usize {
+        self.reader.len()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.reader.is_empty()
+    }
+
+    fn version(&self) -> Version {
+        self.reader.version()
     }
 }
 

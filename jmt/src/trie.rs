@@ -1,6 +1,6 @@
 use crate::{
-    db::VersionedDatabase, proof::SparseMerkleProof, storage::TreeReader, KeyHash, OwnedValue,
-    RootHash, SimpleHasher, Version,
+    db::VersionedDatabase, proof::SparseMerkleProof, storage::TreeReader, JellyfishMerkleIterator,
+    KeyHash, OwnedValue, RootHash, SimpleHasher, Version,
 };
 use anyhow::Result;
 
@@ -33,4 +33,18 @@ where
         expected_root_hash: RootHash,
         proof: SparseMerkleProof<H>,
     ) -> Result<()>;
+
+    /// Create a [`JellyfishMerkleIterator`] from the reader: R, to iterate
+    /// over values in the tree starting at the given key and version.
+    fn iter(&self, version: Version, starting_key: KeyHash) -> Result<JellyfishMerkleIterator<R>>;
+
+    /// Get the number of `Some(value)`s from the latest version of the tree stored in the `VersionedDatabase`.
+    fn len(&self) -> usize;
+
+    /// Returns true if there are no nodes with `OwnedValue`s for the latest
+    /// `Version` in `VersionedDatabase::value_history()`
+    fn is_empty(&self) -> bool;
+
+    /// Get the latest [`Version`] of the tree from the tree store's value history.
+    fn version(&self) -> Version;
 }
