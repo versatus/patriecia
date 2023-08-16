@@ -41,7 +41,7 @@ proptest! {
                 .into_iter()
                 .collect()
         );
-        let tree = Sha256Jmt::new(&db);
+        let tree = Sha256Jmt::new(db);
         let expected_root_hash = tree.get_root_hash(version).unwrap();
         let batch1: Vec<_> = all.clone().into_iter().take(batch1_size).collect();
 
@@ -92,7 +92,7 @@ proptest! {
             restore.finish().unwrap();
         }
 
-        assert_success(&restore_db, expected_root_hash, &all, version);
+        assert_success(restore_db, expected_root_hash, &all, version);
     }
 
     #[test]
@@ -109,7 +109,7 @@ proptest! {
 }
 
 fn assert_success(
-    db: &MockTreeStore,
+    db: Arc<MockTreeStore>,
     expected_root_hash: RootHash,
     btree: &BTreeMap<KeyHash, OwnedValue>,
     version: Version,
@@ -130,7 +130,7 @@ fn restore_without_interruption(
     try_resume: bool,
 ) {
     let (db, source_version) = init_mock_db(&btree.clone().into_iter().collect());
-    let tree = Sha256Jmt::new(&db);
+    let tree = Sha256Jmt::new(db);
     let expected_root_hash = tree.get_root_hash(source_version).unwrap();
 
     let mut restore = if try_resume {
@@ -158,5 +158,5 @@ fn restore_without_interruption(
     }
     Box::new(restore).finish().unwrap();
 
-    assert_success(target_db, expected_root_hash, btree, target_version);
+    assert_success(target_db.clone(), expected_root_hash, btree, target_version);
 }

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use alloc::string::ToString;
+use alloc::sync::Arc;
 use alloc::vec::Vec;
 use alloc::{format, vec};
 use proptest::collection::btree_set;
@@ -42,8 +43,8 @@ fn update_nibble(original_key: &KeyHash, n: usize, nibble: u8) -> KeyHash {
 
 #[test]
 fn test_insert_to_empty_tree() {
-    let db = MockTreeStore::default();
-    let tree = Sha256Jmt::new(&db);
+    let db = Arc::new(MockTreeStore::default());
+    let tree = Sha256Jmt::new(db);
 
     // Tree is initially empty. Root is a null node. We'll insert a key-value pair which creates a
     // leaf node.
@@ -60,7 +61,7 @@ fn test_insert_to_empty_tree() {
         .unwrap();
     assert!(batch.stale_node_index_batch.is_empty());
 
-    db.write_tree_update_batch(batch).unwrap();
+    tree.reader().write_tree_update_batch(batch).unwrap();
 
     assert_eq!(
         tree.get(KeyHash::with::<Sha256>(key), 0).unwrap().unwrap(),
@@ -70,8 +71,8 @@ fn test_insert_to_empty_tree() {
 
 #[test]
 fn test_insert_at_leaf_with_internal_created() {
-    let db = MockTreeStore::default();
-    let tree = Sha256Jmt::new(&db);
+    let db = Arc::new(MockTreeStore::default());
+    let tree = Sha256Jmt::new(db);
 
     let key1 = KeyHash([0u8; 32]);
     let value1 = vec![1u8, 2u8];
@@ -85,7 +86,7 @@ fn test_insert_at_leaf_with_internal_created() {
         .unwrap();
 
     assert!(batch.stale_node_index_batch.is_empty());
-    db.write_tree_update_batch(batch).unwrap();
+    tree.reader().write_tree_update_batch(batch).unwrap();
     assert_eq!(tree.get(key1, 0).unwrap().unwrap(), value1);
 
     // Insert at the previous leaf node. Should generate an internal node at the root.
@@ -101,14 +102,14 @@ fn test_insert_at_leaf_with_internal_created() {
         )
         .unwrap();
     assert_eq!(batch.stale_node_index_batch.len(), 1);
-    db.write_tree_update_batch(batch).unwrap();
+    tree.reader().write_tree_update_batch(batch).unwrap();
 
     assert_eq!(tree.get(key1, 0).unwrap().unwrap(), value1);
     assert!(tree.get(key2, 0).unwrap().is_none());
     assert_eq!(tree.get(key2, 1).unwrap().unwrap(), value2);
 
     // get # of nodes
-    assert_eq!(db.num_nodes(), 4 /* 1 + 3 */);
+    assert_eq!(tree.reader().num_nodes(), 4 /* 1 + 3 */);
 
     let internal_node_key = NodeKey::new_empty_path(1);
 
@@ -124,24 +125,32 @@ fn test_insert_at_leaf_with_internal_created() {
         Child::new(leaf2.hash(), 1 /* version */, NodeType::Leaf),
     );
     let internal = Node::new_internal(children);
-    assert_eq!(db.get_node(&NodeKey::new_empty_path(0)).unwrap(), leaf1);
     assert_eq!(
-        db.get_node(&internal_node_key.gen_child_node_key(1 /* version */, Nibble::from(0)))
+        tree.reader().get_node(&NodeKey::new_empty_path(0)).unwrap(),
+        leaf1
+    );
+    assert_eq!(
+        tree.reader()
+            .get_node(&internal_node_key.gen_child_node_key(1 /* version */, Nibble::from(0)))
             .unwrap(),
         leaf1
     );
     assert_eq!(
-        db.get_node(&internal_node_key.gen_child_node_key(1 /* version */, Nibble::from(15)))
+        tree.reader()
+            .get_node(&internal_node_key.gen_child_node_key(1 /* version */, Nibble::from(15)))
             .unwrap(),
         leaf2
     );
-    assert_eq!(db.get_node(&internal_node_key).unwrap(), internal);
+    assert_eq!(
+        tree.reader().get_node(&internal_node_key).unwrap(),
+        internal
+    );
 }
 
 #[test]
 fn test_insert_at_leaf_with_multiple_internals_created() {
-    let db = MockTreeStore::default();
-    let tree = Sha256Jmt::new(&db);
+    let db = Arc::new(MockTreeStore::default());
+    let tree = Sha256Jmt::new(db);
 
     // 1. Insert the first leaf into empty tree
     let key1 = KeyHash([0u8; 32]);
@@ -154,7 +163,7 @@ fn test_insert_at_leaf_with_multiple_internals_created() {
             0, /* version */
         )
         .unwrap();
-    db.write_tree_update_batch(batch).unwrap();
+    tree.reader().write_tree_update_batch(batch).unwrap();
     assert_eq!(tree.get(key1, 0).unwrap().unwrap(), value1);
 
     // 2. Insert at the previous leaf node. Should generate a branch node at root.
@@ -169,12 +178,12 @@ fn test_insert_at_leaf_with_multiple_internals_created() {
             1, /* version */
         )
         .unwrap();
-    db.write_tree_update_batch(batch).unwrap();
+    tree.reader().write_tree_update_batch(batch).unwrap();
     assert_eq!(tree.get(key1, 0).unwrap().unwrap(), value1);
     assert!(tree.get(key2, 0).unwrap().is_none());
     assert_eq!(tree.get(key2, 1).unwrap().unwrap(), value2);
 
-    assert_eq!(db.num_nodes(), 5);
+    assert_eq!(tree.reader().num_nodes(), 5);
 
     let internal_node_key = NodeKey::new(1, NibblePath::new_odd(vec![0x00]));
 
@@ -206,20 +215,28 @@ fn test_insert_at_leaf_with_multiple_internals_created() {
         Node::new_internal(children)
     };
 
-    assert_eq!(db.get_node(&NodeKey::new_empty_path(0)).unwrap(), leaf1);
     assert_eq!(
-        db.get_node(&internal_node_key.gen_child_node_key(1 /* version */, Nibble::from(0)))
+        tree.reader().get_node(&NodeKey::new_empty_path(0)).unwrap(),
+        leaf1
+    );
+    assert_eq!(
+        tree.reader()
+            .get_node(&internal_node_key.gen_child_node_key(1 /* version */, Nibble::from(0)))
             .unwrap(),
         leaf1,
     );
     assert_eq!(
-        db.get_node(&internal_node_key.gen_child_node_key(1 /* version */, Nibble::from(1)))
+        tree.reader()
+            .get_node(&internal_node_key.gen_child_node_key(1 /* version */, Nibble::from(1)))
             .unwrap(),
         leaf2,
     );
-    assert_eq!(db.get_node(&internal_node_key).unwrap(), internal);
     assert_eq!(
-        db.get_node(&NodeKey::new_empty_path(1)).unwrap(),
+        tree.reader().get_node(&internal_node_key).unwrap(),
+        internal
+    );
+    assert_eq!(
+        tree.reader().get_node(&NodeKey::new_empty_path(1)).unwrap(),
         root_internal,
     );
 
@@ -232,19 +249,19 @@ fn test_insert_at_leaf_with_multiple_internals_created() {
             2, /* version */
         )
         .unwrap();
-    db.write_tree_update_batch(batch).unwrap();
+    tree.reader().write_tree_update_batch(batch).unwrap();
     assert!(tree.get(key2, 0).unwrap().is_none());
     assert_eq!(tree.get(key2, 1).unwrap().unwrap(), value2);
     assert_eq!(tree.get(key2, 2).unwrap().unwrap(), value2_update);
 
     // Get # of nodes.
-    assert_eq!(db.num_nodes(), 8);
+    assert_eq!(tree.reader().num_nodes(), 8);
 
     // Purge retired nodes.
-    db.purge_stale_nodes(1).unwrap();
-    assert_eq!(db.num_nodes(), 7);
-    db.purge_stale_nodes(2).unwrap();
-    assert_eq!(db.num_nodes(), 4);
+    tree.reader().purge_stale_nodes(1).unwrap();
+    assert_eq!(tree.reader().num_nodes(), 7);
+    tree.reader().purge_stale_nodes(2).unwrap();
+    assert_eq!(tree.reader().num_nodes(), 4);
     assert_eq!(tree.get(key1, 2).unwrap().unwrap(), value1);
     assert_eq!(tree.get(key2, 2).unwrap().unwrap(), value2_update);
 }
@@ -309,43 +326,46 @@ fn test_batch_insertion() {
 
     // Insert as one batch and update one by one.
     {
-        let db = MockTreeStore::default();
-        let tree = JellyfishMerkleTree::new(&db);
+        let db = Arc::new(MockTreeStore::default());
+        let tree = JellyfishMerkleTree::new(db);
 
         let (_root, batch) = tree.put_value_set(one_batch, 0 /* version */).unwrap();
-        db.write_tree_update_batch(batch).unwrap();
+        tree.reader().write_tree_update_batch(batch).unwrap();
         verify_fn(&tree, 0);
 
         // get # of nodes
-        assert_eq!(db.num_nodes(), 12);
+        assert_eq!(tree.reader().num_nodes(), 12);
     }
 
     // Insert in multiple batches.
     {
-        let db = MockTreeStore::default();
-        let tree = JellyfishMerkleTree::new(&db);
+        let db = Arc::new(MockTreeStore::default());
+        let tree = JellyfishMerkleTree::new(db);
 
         let (_roots, batch) = tree.put_value_sets(batches, 0 /* first_version */).unwrap();
-        db.write_tree_update_batch(batch).unwrap();
+        tree.reader().write_tree_update_batch(batch).unwrap();
         verify_fn(&tree, 6);
 
         // get # of nodes
-        assert_eq!(db.num_nodes(), 26 /* 1 + 3 + 4 + 3 + 8 + 5 + 2 */);
+        assert_eq!(
+            tree.reader().num_nodes(),
+            26 /* 1 + 3 + 4 + 3 + 8 + 5 + 2 */
+        );
 
         // Purge retired nodes('p' means purged and 'a' means added).
         // The initial state of the tree at version 0
         // ```test
         //   1(root)
         // ```
-        db.purge_stale_nodes(1).unwrap();
+        tree.reader().purge_stale_nodes(1).unwrap();
         // ```text
         //   1 (p)           internal(a)
         //           ->     /        \
         //                 1(a)       2(a)
         // add 3, prune 1
         // ```
-        assert_eq!(db.num_nodes(), 25);
-        db.purge_stale_nodes(2).unwrap();
+        assert_eq!(tree.reader().num_nodes(), 25);
+        tree.reader().purge_stale_nodes(2).unwrap();
         // ```text
         //     internal(p)             internal(a)
         //    /        \              /        \
@@ -354,8 +374,8 @@ fn test_batch_insertion() {
         //                      1(a)      3(a)
         // add 4, prune 2
         // ```
-        assert_eq!(db.num_nodes(), 23);
-        db.purge_stale_nodes(3).unwrap();
+        assert_eq!(tree.reader().num_nodes(), 23);
+        tree.reader().purge_stale_nodes(3).unwrap();
         // ```text
         //         internal(p)                internal(a)
         //        /        \                 /        \
@@ -364,8 +384,8 @@ fn test_batch_insertion() {
         //  1         3              1    3    4(a)
         // add 3, prune 2
         // ```
-        assert_eq!(db.num_nodes(), 21);
-        db.purge_stale_nodes(4).unwrap();
+        assert_eq!(tree.reader().num_nodes(), 21);
+        tree.reader().purge_stale_nodes(4).unwrap();
         // ```text
         //            internal(p)                         internal(a)
         //           /        \                          /        \
@@ -382,8 +402,8 @@ fn test_batch_insertion() {
         //                                1(a)     5(a)
         // add 8, prune 3
         // ```
-        assert_eq!(db.num_nodes(), 18);
-        db.purge_stale_nodes(5).unwrap();
+        assert_eq!(tree.reader().num_nodes(), 18);
+        tree.reader().purge_stale_nodes(5).unwrap();
         // ```text
         //                  internal(p)                             internal(a)
         //                 /        \                              /        \
@@ -400,8 +420,8 @@ fn test_batch_insertion() {
         //  1        5                        1        5
         // add 5, prune 4
         // ```
-        assert_eq!(db.num_nodes(), 14);
-        db.purge_stale_nodes(6).unwrap();
+        assert_eq!(tree.reader().num_nodes(), 14);
+        tree.reader().purge_stale_nodes(6).unwrap();
         // ```text
         //                         internal(p)                               internal(a)
         //                        /        \                                /        \
@@ -418,15 +438,15 @@ fn test_batch_insertion() {
         //   1        5                                1        5
         // add 2, prune 2
         // ```
-        assert_eq!(db.num_nodes(), 12);
+        assert_eq!(tree.reader().num_nodes(), 12);
         verify_fn(&tree, 6);
     }
 }
 
 #[test]
 fn test_non_existence() {
-    let db = MockTreeStore::default();
-    let tree = Sha256Jmt::new(&db);
+    let db = Arc::new(MockTreeStore::default());
+    let tree = Sha256Jmt::new(db);
     // ```text
     //                     internal(root)
     //                    /        \
@@ -457,12 +477,12 @@ fn test_non_existence() {
             0, /* version */
         )
         .unwrap();
-    db.write_tree_update_batch(batch).unwrap();
+    tree.reader().write_tree_update_batch(batch).unwrap();
     assert_eq!(tree.get(key1, 0).unwrap().unwrap(), value1);
     assert_eq!(tree.get(key2, 0).unwrap().unwrap(), value2);
     assert_eq!(tree.get(key3, 0).unwrap().unwrap(), value3);
     // get # of nodes
-    assert_eq!(db.num_nodes(), 6);
+    assert_eq!(tree.reader().num_nodes(), 6);
 
     // test non-existing nodes.
     // 1. Non-existing node at root node
@@ -496,8 +516,8 @@ fn test_non_existence() {
 
 #[test]
 fn test_missing_root() {
-    let db = MockTreeStore::default();
-    let tree = Sha256Jmt::new(&db);
+    let db = Arc::new(MockTreeStore::default());
+    let tree = Sha256Jmt::new(db);
     let err = tree
         .get_with_proof(KeyHash::with::<Sha256>(b"testkey"), 0)
         .err()
@@ -509,10 +529,10 @@ fn test_missing_root() {
 
 #[test]
 fn test_non_batch_empty_write_set() {
-    let db = MockTreeStore::default();
-    let tree = Sha256Jmt::new(&db);
+    let db = Arc::new(MockTreeStore::default());
+    let tree = Sha256Jmt::new(db);
     let (_, batch) = tree.put_value_set(vec![], 0 /* version */).unwrap();
-    db.write_tree_update_batch(batch).unwrap();
+    tree.reader().write_tree_update_batch(batch).unwrap();
     let root = tree.get_root_hash(0).unwrap();
     assert_eq!(root.0, SPARSE_MERKLE_PLACEHOLDER_HASH);
 }
@@ -534,8 +554,8 @@ fn test_put_value_sets() {
             .clone()
             .into_iter()
             .zip(values.clone().into_iter().map(Some));
-        let db = MockTreeStore::default();
-        let tree = Sha256Jmt::new(&db);
+        let db = Arc::new(MockTreeStore::default());
+        let tree = Sha256Jmt::new(db);
         for version in 0..10 {
             let mut keyed_value_set = vec![];
             for _ in 0..total_updates / 10 {
@@ -544,7 +564,9 @@ fn test_put_value_sets() {
             let (root, batch) = tree
                 .put_value_set(keyed_value_set, version as Version)
                 .unwrap();
-            db.write_tree_update_batch(batch.clone()).unwrap();
+            tree.reader()
+                .write_tree_update_batch(batch.clone())
+                .unwrap();
             root_hashes_one_by_one.push(root);
             batch_one_by_one.node_batch.merge(batch.node_batch);
             batch_one_by_one
@@ -555,8 +577,8 @@ fn test_put_value_sets() {
     }
     {
         let mut iter = keys.into_iter().zip(values.into_iter());
-        let db = MockTreeStore::default();
-        let tree = Sha256Jmt::new(&db);
+        let db = Arc::new(MockTreeStore::default());
+        let tree = Sha256Jmt::new(db);
         let mut value_sets = vec![];
         for _ in 0..10 {
             let mut keyed_value_set = vec![];
@@ -579,8 +601,8 @@ fn many_keys_get_proof_and_verify_tree_root(seed: &[u8], num_keys: usize) {
     actual_seed[..seed.len()].copy_from_slice(seed);
     let _rng: StdRng = StdRng::from_seed(actual_seed);
 
-    let db = MockTreeStore::default();
-    let tree = Sha256Jmt::new(&db);
+    let db = Arc::new(MockTreeStore::default());
+    let tree = Sha256Jmt::new(db);
 
     let mut kvs = vec![];
     for i in 0..num_keys {
@@ -592,7 +614,7 @@ fn many_keys_get_proof_and_verify_tree_root(seed: &[u8], num_keys: usize) {
     let (roots, batch) = tree
         .batch_put_value_sets(vec![kvs.clone()], None, 0 /* version */)
         .unwrap();
-    db.write_tree_update_batch(batch).unwrap();
+    tree.reader().write_tree_update_batch(batch).unwrap();
 
     for (k, v) in kvs {
         let (value, proof) = tree.get_with_proof(k, 0).unwrap();
@@ -613,8 +635,8 @@ fn many_versions_get_proof_and_verify_tree_root(seed: &[u8], num_versions: usize
     actual_seed[..seed.len()].copy_from_slice(seed);
     let mut rng: StdRng = StdRng::from_seed(actual_seed);
 
-    let db = MockTreeStore::default();
-    let tree = Sha256Jmt::new(&db);
+    let db = Arc::new(MockTreeStore::default());
+    let tree = Sha256Jmt::new(db);
 
     let mut kvs = vec![];
     let mut roots = vec![];
@@ -631,7 +653,7 @@ fn many_versions_get_proof_and_verify_tree_root(seed: &[u8], num_versions: usize
             .batch_put_value_sets(vec![vec![(*k, v_old.clone())]], None, idx as Version)
             .unwrap();
         roots.push(root[0]);
-        db.write_tree_update_batch(batch).unwrap();
+        tree.reader().write_tree_update_batch(batch).unwrap();
     }
 
     // Update value of all keys
@@ -641,7 +663,7 @@ fn many_versions_get_proof_and_verify_tree_root(seed: &[u8], num_versions: usize
             .batch_put_value_sets(vec![vec![(*k, v_new.clone())]], None, version)
             .unwrap();
         roots.push(root[0]);
-        db.write_tree_update_batch(batch).unwrap();
+        tree.reader().write_tree_update_batch(batch).unwrap();
     }
 
     for (i, (k, v, _)) in kvs.iter().enumerate() {
@@ -667,8 +689,8 @@ fn test_1000_versions() {
 
 #[test]
 fn test_delete_then_get_in_one() {
-    let db = MockTreeStore::default();
-    let tree = Sha256Jmt::new(&db);
+    let db = Arc::new(MockTreeStore::default());
+    let tree = Sha256Jmt::new(db);
 
     let key1: KeyHash = KeyHash([1; 32]);
     let key2: KeyHash = KeyHash([2; 32]);
@@ -681,13 +703,13 @@ fn test_delete_then_get_in_one() {
             0, /* version */
         )
         .unwrap();
-    db.write_tree_update_batch(batch).unwrap();
+    tree.reader().write_tree_update_batch(batch).unwrap();
 }
 
 #[test]
 fn test_two_gets_then_delete() {
-    let db = MockTreeStore::default();
-    let tree = Sha256Jmt::new(&db);
+    let db = Arc::new(MockTreeStore::default());
+    let tree = Sha256Jmt::new(db);
 
     let key1: KeyHash = KeyHash([1; 32]);
 
@@ -699,12 +721,12 @@ fn test_two_gets_then_delete() {
             0, /* version */
         )
         .unwrap();
-    db.write_tree_update_batch(batch).unwrap();
+    tree.reader().write_tree_update_batch(batch).unwrap();
 
     let (_root, batch) = tree
         .put_value_set(vec![(key1, None)], 0 /* version */)
         .unwrap();
-    db.write_tree_update_batch(batch).unwrap();
+    tree.reader().write_tree_update_batch(batch).unwrap();
 }
 
 proptest! {

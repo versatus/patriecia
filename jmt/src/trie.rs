@@ -2,10 +2,11 @@ use crate::{
     db::VersionedDatabase, proof::SparseMerkleProof, storage::TreeReader, JellyfishMerkleIterator,
     KeyHash, OwnedValue, RootHash, SimpleHasher, Version,
 };
+use alloc::sync::Arc;
 use anyhow::Result;
 
 /// Exposes additional convenience methods for the [`JellyfishMerkleTree`](./jmt/tree).
-pub trait VersionedTrie<'a, R, H>
+pub trait VersionedTrie<R, H>
 where
     R: TreeReader + VersionedDatabase,
     H: SimpleHasher,
@@ -48,5 +49,5 @@ where
     /// Get the latest [`Version`] of the tree from the tree store's value history.
     fn version(&self) -> Version;
 
-    fn reader(&self) -> &'a R;
+    fn reader(&self) -> &Arc<R>;
 }

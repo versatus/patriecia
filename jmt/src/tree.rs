@@ -31,16 +31,16 @@ use crate::{
 
 /// A [`JellyfishMerkleTree`] instantiated using the `sha2::Sha256` hasher.
 /// This is a sensible default choice for most applications.
-pub type Sha256Jmt<'a, R> = JellyfishMerkleTree<'a, R, Sha256>;
+pub type Sha256Jmt<R> = JellyfishMerkleTree<R, Sha256>;
 /// A [`JellyfishMerkleTree`] instantiated using a modified `keccak_hash::H256` hasher.
 /// This is the default choice for the vrrb protocol.
-pub type H256Jmt<'a, R> = JellyfishMerkleTree<'a, R, H256>;
+pub type H256Jmt<R> = JellyfishMerkleTree<R, H256>;
 
 /// A Jellyfish Merkle tree data structure, parameterized by a [`TreeReader`] `R`
 /// and a [`SimpleHasher`] `H`. See [`crate`] for description.
 #[derive(Debug, Clone)]
-pub struct JellyfishMerkleTree<'a, R: TreeReader + VersionedDatabase, H: SimpleHasher> {
-    reader: &'a R,
+pub struct JellyfishMerkleTree<R: TreeReader + VersionedDatabase, H: SimpleHasher> {
+    reader: Arc<R>,
     leaf_count_migration: bool,
     _phantom_hasher: PhantomHasher<H>,
 }
@@ -48,7 +48,7 @@ pub struct JellyfishMerkleTree<'a, R: TreeReader + VersionedDatabase, H: SimpleH
 #[cfg(feature = "ics23")]
 pub mod ics23_impl;
 
-impl<'a, R, H> VersionedTrie<'a, R, H> for JellyfishMerkleTree<'a, R, H>
+impl<R, H> VersionedTrie<R, H> for JellyfishMerkleTree<R, H>
 where
     R: TreeReader + VersionedDatabase,
     H: SimpleHasher,
@@ -73,7 +73,7 @@ where
     }
 
     fn iter(&self, version: Version, starting_key: KeyHash) -> Result<JellyfishMerkleIterator<R>> {
-        JellyfishMerkleIterator::new(Arc::new(self.reader.clone()), version, starting_key)
+        JellyfishMerkleIterator::new(Arc::clone(&self.reader), version, starting_key)
     }
 
     fn len(&self) -> usize {
@@ -88,18 +88,18 @@ where
         self.reader.version()
     }
 
-    fn reader(&self) -> &'a R {
-        self.reader
+    fn reader(&self) -> &Arc<R> {
+        &self.reader
     }
 }
 
-impl<'a, R, H> JellyfishMerkleTree<'a, R, H>
+impl<R, H> JellyfishMerkleTree<R, H>
 where
-    R: 'a + TreeReader + VersionedDatabase,
+    R: TreeReader + VersionedDatabase,
     H: SimpleHasher,
 {
     /// Creates a `JellyfishMerkleTree` backed by the given [`TreeReader`].
-    pub fn new(reader: &'a R) -> Self {
+    pub fn new(reader: Arc<R>) -> Self {
         Self {
             reader,
             leaf_count_migration: true,
@@ -107,7 +107,7 @@ where
         }
     }
 
-    pub fn new_migration(reader: &'a R, leaf_count_migration: bool) -> Self {
+    pub fn new_migration(reader: Arc<R>, leaf_count_migration: bool) -> Self {
         Self {
             reader,
             leaf_count_migration,
@@ -138,7 +138,7 @@ where
         node_hashes: Option<Vec<&HashMap<NibblePath, [u8; 32]>>>,
         first_version: Version,
     ) -> Result<(Vec<RootHash>, TreeUpdateBatch)> {
-        let mut tree_cache = TreeCache::new(self.reader, first_version)?;
+        let mut tree_cache = TreeCache::new(&self.reader, first_version)?;
         let hash_sets: Vec<_> = match node_hashes {
             Some(hashes) => hashes.into_iter().map(Some).collect(),
             None => (0..value_sets.len()).map(|_| None).collect(),
@@ -465,7 +465,7 @@ where
         value_sets: impl IntoIterator<Item = impl IntoIterator<Item = (KeyHash, Option<OwnedValue>)>>,
         first_version: Version,
     ) -> Result<(Vec<RootHash>, TreeUpdateBatch)> {
-        let mut tree_cache = TreeCache::new(self.reader, first_version)?;
+        let mut tree_cache = TreeCache::new(&self.reader, first_version)?;
         for (idx, value_set) in value_sets.into_iter().enumerate() {
             let version = first_version + idx as u64;
             value_set

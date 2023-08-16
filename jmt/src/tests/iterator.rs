@@ -10,8 +10,8 @@ use sha2::Sha256;
 
 use super::helper::plus_one;
 use crate::{
-    iterator::JellyfishMerkleIterator, mock::MockTreeStore, types::Version, KeyHash, OwnedValue,
-    Sha256Jmt,
+    iterator::JellyfishMerkleIterator, mock::MockTreeStore, trie::VersionedTrie, types::Version,
+    KeyHash, OwnedValue, Sha256Jmt,
 };
 
 #[test]
@@ -33,7 +33,7 @@ fn test_long_path() {
 
 fn test_n_leaves_same_version(n: usize) {
     let db = Arc::new(MockTreeStore::default());
-    let tree = Sha256Jmt::new(&*db);
+    let tree = Sha256Jmt::new(db);
 
     let mut rng = StdRng::from_seed([1; 32]);
 
@@ -50,16 +50,16 @@ fn test_n_leaves_same_version(n: usize) {
             0, /* version */
         )
         .unwrap();
-    db.write_tree_update_batch(batch).unwrap();
+    tree.reader().write_tree_update_batch(batch).unwrap();
 
     let btree = btree.into_iter().collect::<BTreeMap<KeyHash, OwnedValue>>();
 
-    run_tests(db, &btree, 0 /* version */);
+    run_tests(tree.reader(), &btree, 0 /* version */);
 }
 
 fn test_n_leaves_multiple_versions(n: usize) {
     let db = Arc::new(MockTreeStore::default());
-    let tree = Sha256Jmt::new(&*db);
+    let tree = Sha256Jmt::new(db);
 
     let mut btree = BTreeMap::new();
     for i in 0..n {
@@ -69,14 +69,14 @@ fn test_n_leaves_multiple_versions(n: usize) {
         let (_root_hash, batch) = tree
             .put_value_set(vec![(key, Some(value))], i as Version)
             .unwrap();
-        db.write_tree_update_batch(batch).unwrap();
-        run_tests(Arc::clone(&db), &btree, i as Version);
+        tree.reader().write_tree_update_batch(batch).unwrap();
+        run_tests(tree.reader(), &btree, i as Version);
     }
 }
 
 fn test_n_consecutive_addresses(n: usize) {
     let db = Arc::new(MockTreeStore::default());
-    let tree = Sha256Jmt::new(&*db);
+    let tree = Sha256Jmt::new(db);
 
     let btree: BTreeMap<_, _> = (0..n)
         .map(|i| {
@@ -92,12 +92,12 @@ fn test_n_consecutive_addresses(n: usize) {
             0, /* version */
         )
         .unwrap();
-    db.write_tree_update_batch(batch).unwrap();
+    tree.reader().write_tree_update_batch(batch).unwrap();
 
-    run_tests(db, &btree, 0 /* version */);
+    run_tests(tree.reader(), &btree, 0 /* version */);
 }
 
-fn run_tests(db: Arc<MockTreeStore>, btree: &BTreeMap<KeyHash, OwnedValue>, version: Version) {
+fn run_tests(db: &Arc<MockTreeStore>, btree: &BTreeMap<KeyHash, OwnedValue>, version: Version) {
     {
         let iter =
             JellyfishMerkleIterator::new(Arc::clone(&db), version, KeyHash([0u8; 32])).unwrap();

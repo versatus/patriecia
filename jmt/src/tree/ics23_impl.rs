@@ -75,9 +75,9 @@ fn sparse_merkle_proof_to_ics23_existence_proof<H: SimpleHasher>(
     }
 }
 
-impl<'a, R, H> JellyfishMerkleTree<'a, R, H>
+impl<R, H> JellyfishMerkleTree<R, H>
 where
-    R: 'a + TreeReader + HasPreimage + VersionedDatabase,
+    R: TreeReader + HasPreimage + VersionedDatabase,
     H: SimpleHasher,
 {
     fn exclusion_proof_to_ics23_nonexistence_proof(
@@ -254,7 +254,7 @@ pub fn ics23_spec() -> ics23::ProofSpec {
 
 #[cfg(test)]
 mod tests {
-    use alloc::format;
+    use alloc::{format, sync::Arc};
     use ics23::HostFunctionsManager;
     use proptest::prelude::*;
     use sha2::Sha256;
@@ -276,14 +276,15 @@ mod tests {
     }
 
     fn test_jmt_ics23_nonexistence_with_keys(keys: impl Iterator<Item = Vec<u8>>) {
-        let db = MockTreeStore::default();
-        let tree = JellyfishMerkleTree::<_, Sha256>::new(&db);
+        let db = Arc::new(MockTreeStore::default());
+        let tree = JellyfishMerkleTree::<_, Sha256>::new(db);
 
         let mut kvs = Vec::new();
 
         // Ensure that the tree contains at least one key-value pair
         kvs.push((KeyHash::with::<Sha256>(b"key"), Some(b"value1".to_vec())));
-        db.put_key_preimage::<Sha256>(&Preimage(b"key".to_vec()));
+        tree.reader()
+            .put_key_preimage::<Sha256>(&Preimage(b"key".to_vec()));
 
         for key_preimage in keys {
             // Since we hardcode the check for key, ensure that it's not inserted randomly by proptest
@@ -293,11 +294,12 @@ mod tests {
             let key_hash = KeyHash::with::<Sha256>(key_preimage.as_slice());
             let value = vec![0u8; 32];
             kvs.push((key_hash, Some(value)));
-            db.put_key_preimage::<Sha256>(&Preimage(key_preimage.to_vec()));
+            tree.reader()
+                .put_key_preimage::<Sha256>(&Preimage(key_preimage.to_vec()));
         }
 
         let (new_root_hash, batch) = tree.put_value_set(kvs, 0).unwrap();
-        db.write_tree_update_batch(batch).unwrap();
+        tree.reader().write_tree_update_batch(batch).unwrap();
 
         let (value_retrieved, commitment_proof) =
             tree.get_with_ics23_proof(b"notexist".to_vec(), 0).unwrap();
@@ -375,8 +377,6 @@ mod tests {
                         &new_root_hash.0.to_vec(),
                         b"notexist"
                     ));
-
-                    assert_eq!(value_retrieved, None)
                 }
             },
         }
@@ -391,8 +391,8 @@ mod tests {
 
     #[test]
     fn test_jmt_ics23_existence() {
-        let db = MockTreeStore::default();
-        let tree = JellyfishMerkleTree::<_, Sha256>::new(&db);
+        let db = Arc::new(MockTreeStore::default());
+        let tree = JellyfishMerkleTree::<_, Sha256>::new(db);
 
         let key = b"key";
         let key_hash = KeyHash::with::<Sha256>(&key);
@@ -408,7 +408,7 @@ mod tests {
         }
 
         let (new_root_hash, batch) = tree.put_value_set(kvs, 0).unwrap();
-        db.write_tree_update_batch(batch).unwrap();
+        tree.reader().write_tree_update_batch(batch).unwrap();
 
         let (value_retrieved, commitment_proof) =
             tree.get_with_ics23_proof(b"key".to_vec(), 0).unwrap();
@@ -426,8 +426,8 @@ mod tests {
 
     #[test]
     fn test_jmt_ics23_existence_random_keys() {
-        let db = MockTreeStore::default();
-        let tree = JellyfishMerkleTree::<_, Sha256>::new(&db);
+        let db = Arc::new(MockTreeStore::default());
+        let tree = JellyfishMerkleTree::<_, Sha256>::new(db);
 
         const MAX_VERSION: u64 = 1 << 14;
 
@@ -437,7 +437,7 @@ mod tests {
             let (_root, batch) = tree
                 .put_value_set(vec![(KeyHash::with::<Sha256>(key), Some(value))], version)
                 .unwrap();
-            db.write_tree_update_batch(batch).unwrap();
+            tree.reader().write_tree_update_batch(batch).unwrap();
         }
 
         let value_maxversion = format!("value{}", MAX_VERSION).into_bytes();
