@@ -1,7 +1,6 @@
 // Copyright (c) The Diem Core Contributors
 // SPDX-License-Identifier: Apache-2.0
 #![cfg_attr(not(feature = "std"), no_std)]
-#![forbid(unsafe_code)]
 
 //! This module implements [`JellyfishMerkleTree`] backed by storage module. The tree itself doesn't
 //! persist anything, but realizes the logic of R/W only. The write path will produce all the
@@ -81,15 +80,15 @@ use sha2::Digest;
 use thiserror::Error;
 
 mod bytes32ext;
-mod db;
+pub mod db;
 mod iterator;
 mod node_type;
-mod reader;
+pub mod reader;
 mod tree;
 mod tree_cache;
-mod trie;
+pub mod trie;
 mod types;
-mod writer;
+pub mod writer;
 
 #[cfg(any(test, feature = "mocks"))]
 pub mod mock;
@@ -97,9 +96,10 @@ pub mod restore;
 
 use bytes32ext::Bytes32Ext;
 pub use iterator::JellyfishMerkleIterator;
+pub use sha2::Sha256;
 #[cfg(feature = "ics23")]
 pub use tree::ics23_impl::ics23_spec;
-pub use tree::{JellyfishMerkleTree, Sha256Jmt};
+pub use tree::{H256Jmt, JellyfishMerkleTree, Sha256Jmt};
 use types::nibble::ROOT_NIBBLE_HEIGHT;
 pub use types::proof;
 pub use types::Version;
@@ -277,7 +277,7 @@ impl<'a> core::fmt::Debug for EscapedByteSlice<'a> {
 
 /// A minimal trait representing a hash function. We implement our own
 /// rather than relying on `Digest` for broader compatibility.
-pub trait SimpleHasher: Sized {
+pub trait SimpleHasher: Sized + Clone + Debug {
     /// Creates a new hasher with default state.
     fn new() -> Self;
     /// Ingests the provided data, updating the hasher's state.
@@ -319,7 +319,7 @@ impl<H: SimpleHasher> Default for PhantomHasher<H> {
     }
 }
 
-impl<T: Digest> SimpleHasher for T
+impl<T: Digest + Clone + Debug> SimpleHasher for T
 where
     [u8; 32]: From<GenericArray<u8, <T as OutputSizeUser>::OutputSize>>,
 {

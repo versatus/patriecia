@@ -11,6 +11,7 @@ use alloc::{sync::Arc, vec::Vec};
 use anyhow::{bail, ensure, format_err, Result};
 
 use crate::{
+    db::VersionedDatabase,
     node_type::{Child, InternalNode, Node, NodeKey},
     storage::TreeReader,
     types::{
@@ -98,7 +99,7 @@ impl NodeVisitInfo {
 /// key-value pairs in this version of the tree, starting from the smallest key
 /// that is greater or equal to the given key, by performing a depth first
 /// traversal on the tree.
-pub struct JellyfishMerkleIterator<R> {
+pub struct JellyfishMerkleIterator<R: TreeReader + VersionedDatabase> {
     /// The storage engine from which we can read nodes using node keys.
     reader: Arc<R>,
 
@@ -116,7 +117,7 @@ pub struct JellyfishMerkleIterator<R> {
 
 impl<R> JellyfishMerkleIterator<R>
 where
-    R: TreeReader,
+    R: TreeReader + VersionedDatabase,
 {
     /// Constructs a new iterator. This puts the internal state in the correct position, so the
     /// following `next` call will yield the smallest key that is greater or equal to
@@ -275,7 +276,7 @@ where
 
 impl<R> Iterator for JellyfishMerkleIterator<R>
 where
-    R: TreeReader,
+    R: TreeReader + VersionedDatabase,
 {
     type Item = Result<(KeyHash, OwnedValue)>;
 

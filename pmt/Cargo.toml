@@ -9,6 +9,8 @@ authors = ["VRRB Labs <info@vrrb.io>"]
 name = "pmt"
 
 [dependencies]
+serde_hash = { workspace = true }
+jmt = { workspace = true }
 left-right = { workspace = true }
 hashbrown = { workspace = true }
 keccak-hash = { workspace = true }

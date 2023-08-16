@@ -66,7 +66,7 @@
 //! Updating node could be operated as deletion of the node followed by insertion of the updated
 //! node.
 
-use alloc::{collections::BTreeSet, vec::Vec};
+use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 #[cfg(not(feature = "std"))]
 use hashbrown::{hash_map::Entry, HashMap, HashSet};
 #[cfg(feature = "std")]
@@ -151,7 +151,7 @@ where
     R: 'a + TreeReader,
 {
     /// Constructs a new `TreeCache` instance.
-    pub fn new(reader: &'a R, next_version: Version) -> Result<Self> {
+    pub fn new(reader: &'a Arc<R>, next_version: Version) -> Result<Self> {
         let mut node_cache = HashMap::new();
         let root_node_key = if next_version == 0 {
             let pre_genesis_root_key = NodeKey::new_empty_path(PRE_GENESIS_VERSION);

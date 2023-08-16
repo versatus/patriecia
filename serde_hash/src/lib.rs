@@ -17,8 +17,8 @@ construct_fixed_hash! {
 
 /// An adaptation of the `keccak_hash::keccak` function that returns
 /// a [serde_hash::H256].
-pub fn keccak<T: AsRef<[u8]>>(s: T) -> crate::serde_hash::H256 {
+pub fn keccak<T: AsRef<[u8]>>(s: T) -> H256 {
     let mut result = [0u8; 32];
     write_keccak(s, &mut result);
-    crate::serde_hash::H256(result)
+    H256(result)
 }

@@ -182,8 +182,14 @@ impl<H: SimpleHasher> JellyfishMerkleRestore<H> {
                 // TODO: confirm rightmost leaf is at the desired version
                 // If the system crashed in the middle of the previous restoration attempt, we need
                 // to recover the partial nodes to the state right before the crash.
+                //
+                // Use of unsafe block to retrieve inner value of the TreeReader.
+                // Necessary to implement Clone and other traits for TreeReader.
+                // Does not affect the state of the Arc.
+                let raw_tree_reader = Arc::as_ptr(&tree_reader);
+                let recovery_tree = unsafe { &*raw_tree_reader };
                 (
-                    Self::recover_partial_nodes(tree_reader.as_ref(), version, node_key)?,
+                    Self::recover_partial_nodes(recovery_tree.clone(), version, node_key)?,
                     Some(leaf_node),
                 )
             } else {
@@ -227,8 +233,8 @@ impl<H: SimpleHasher> JellyfishMerkleRestore<H> {
 
     /// Recovers partial nodes from storage. We do this by looking at all the ancestors of the
     /// rightmost leaf. The ones do not exist in storage are the partial nodes.
-    fn recover_partial_nodes(
-        store: &dyn TreeReader,
+    fn recover_partial_nodes<R: TreeReader>(
+        store: R,
         version: Version,
         rightmost_leaf_node_key: NodeKey,
     ) -> Result<Vec<InternalInfo>> {

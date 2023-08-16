@@ -1,7 +1,7 @@
 use crate::common::{Key, OwnedValue, Value};
 use crate::db::Database;
 use crate::result::Result;
-use crate::serde_hash::H256;
+use serde_hash::H256;
 
 #[deprecated(since = "1.0.0", note = "replaced by VersionedTrie")]
 pub trait Trie<D: Database> {

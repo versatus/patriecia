@@ -7,7 +7,7 @@ use crate::{KeyHash, OwnedValue, Version};
 /// Defines the interface between a
 /// [`JellyfishMerkleTree`](crate::JellyfishMerkleTree)
 /// and underlying storage holding nodes.
-pub trait TreeReader {
+pub trait TreeReader: Clone + Default {
     /// Gets node given a node key. Returns error if the node does not exist.
     fn get_node(&self, node_key: &NodeKey) -> Result<Node> {
         self.get_node_option(node_key)?

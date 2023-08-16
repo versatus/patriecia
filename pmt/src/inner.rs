@@ -8,6 +8,7 @@ use std::{borrow::BorrowMut, fmt::Display};
 use hashbrown::{HashMap, HashSet};
 use rlp::{Prototype, Rlp, RlpStream};
 use serde::{Deserialize, Serialize};
+use serde_hash::{keccak, H256};
 
 use crate::{
     common::{Key, OwnedValue, Value},
@@ -16,7 +17,6 @@ use crate::{
     nibbles::Nibbles,
     node::{BranchNode, ExtensionNode, HashNode, Node},
     result::Result,
-    serde_hash::{keccak, H256},
     trie::Trie,
     TrieIterator,
 };

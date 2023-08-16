@@ -3,6 +3,9 @@ use crate::{
     KeyHash, OwnedValue, Version,
 };
 use anyhow::Result;
+#[cfg(not(feature = "std"))]
+use hashbrown::HashMap;
+#[cfg(feature = "std")]
 use std::collections::HashMap;
 
 /// Defines the interaction between a database and the node versioning strategy
@@ -110,6 +113,19 @@ pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
             .count()
     }
 
+    /// Get the latest [`Version`] of the tree stored in the value history.
+    fn version(&self) -> Version {
+        let mut latest: u64 = 0;
+        for values in self.value_history().values() {
+            for (ver, _) in values.iter() {
+                if ver > &latest {
+                    latest = *ver;
+                }
+            }
+        }
+        latest
+    }
+
     /// Replaces `Database::values()`. Returns a clone of the nodes HashMap which
     /// has a `.values()` method returning `Values<NodeKey, Node>`
     /// for iteration over `jmt::VersionedDatabase`.
@@ -141,7 +157,7 @@ pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
     fn value_history(&self) -> HashMap<KeyHash, Vec<(Version, Option<OwnedValue>)>>;
 
     /// Returns true if there are no nodes with `OwnedValue`s for the latest
-    /// `Version` in `Database::value_history()`
+    /// `Version` in `VersionedDatabase::value_history()`
     fn is_empty(&self) -> bool {
         self.len() == 0
     }

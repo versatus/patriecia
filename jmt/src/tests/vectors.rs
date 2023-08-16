@@ -1,4 +1,4 @@
-use alloc::{string::String, vec::Vec};
+use alloc::{string::String, sync::Arc, vec::Vec};
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 
@@ -33,7 +33,7 @@ fn test_with_vectors() {
     let test_file: TestVectorWrapper =
         serde_json::from_str(test_vectors).expect("test vectors must be valid json");
 
-    let store = &MockTreeStore::default();
+    let store = Arc::new(MockTreeStore::default());
 
     let jmt = Sha256Jmt::new(store);
     for vector in test_file.vectors {
