@@ -49,5 +49,7 @@ where
     /// Get the latest [`Version`] of the tree from the tree store's value history.
     fn version(&self) -> Version;
 
+    /// Returns a reference to the reader for use in updating
+    /// the database.
     fn reader(&self) -> &Arc<R>;
 }
