@@ -96,7 +96,7 @@ where
     }
 
     fn version(&self) -> Version {
-        self.reader.version().into()
+        self.reader.version()
     }
 
     fn reader(&self) -> &Arc<R> {
@@ -162,7 +162,7 @@ where
                 !value_set.is_empty(),
                 "Transactions that output empty write set should not be included.",
             );
-            let version = first_version + idx as u64;
+            let version = Version(first_version.0 + idx as u64);
             let deduped_and_sorted_kvs = value_set
                 .into_iter()
                 .collect::<BTreeMap<_, _>>()
@@ -478,7 +478,7 @@ where
     ) -> Result<(Vec<RootHash>, TreeUpdateBatch)> {
         let mut tree_cache = TreeCache::new(&self.reader, first_version)?;
         for (idx, value_set) in value_sets.into_iter().enumerate() {
-            let version = first_version + idx as u64;
+            let version = Version(first_version.0 + idx as u64);
             value_set
                 .into_iter()
                 .enumerate()
@@ -490,7 +490,7 @@ where
                         .with_context(|| {
                             format!(
                                 "failed to {} key {} for version {}, key = {:?}",
-                                action, i, version, key
+                                action, i, version.0, key
                             )
                         })
                 })?;
@@ -1221,7 +1221,7 @@ where
 
     fn get_root_node(&self, version: Version) -> Result<Node> {
         self.get_root_node_option(version)?
-            .ok_or_else(|| format_err!("Root node not found for version {}.", version))
+            .ok_or_else(|| format_err!("Root node not found for version {}.", version.0))
     }
 
     pub(crate) fn get_root_node_option(&self, version: Version) -> Result<Option<Node>> {

@@ -9,10 +9,16 @@ use parking_lot::RwLock;
 use thiserror::Error;
 
 #[cfg(not(feature = "std"))]
-use hashbrown::{hash_map::{Entry, IntoIter}, HashMap};
+use hashbrown::{
+    hash_map::{Entry, IntoIter},
+    HashMap,
+};
 #[cfg(feature = "std")]
 use std::{
-    collections::{hash_map::{Entry, IntoIter}, HashMap},
+    collections::{
+        hash_map::{Entry, IntoIter},
+        HashMap,
+    },
     sync::Arc,
 };
 
@@ -61,7 +67,6 @@ impl VersionedDatabase for MockTreeStore {
     type KeyHash = KeyHash;
     type NodeKey = NodeKey;
     type Node = Node;
-    type Version = u64;
     type NodeIter = IntoIter<NodeKey, Node>;
     type HistoryIter = IntoIter<KeyHash, Vec<(Version, Option<OwnedValue>)>>;
 

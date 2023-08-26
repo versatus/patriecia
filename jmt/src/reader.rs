@@ -23,7 +23,8 @@ pub trait TreeReader: Clone + Default {
         self.get_value_option(max_version, key_hash)?
             .ok_or_else(|| {
                 format_err!(
-                    "Missing value with max_version {max_version:} and key hash {key_hash:?}."
+                    "Missing value with max_version {:} and key hash {key_hash:?}.",
+                    max_version.0
                 )
             })
     }

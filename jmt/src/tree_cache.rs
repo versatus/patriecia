@@ -153,7 +153,7 @@ where
     /// Constructs a new `TreeCache` instance.
     pub fn new(reader: &'a Arc<R>, next_version: Version) -> Result<Self> {
         let mut node_cache = HashMap::new();
-        let root_node_key = if next_version == 0 {
+        let root_node_key = if next_version.0 == 0 {
             let pre_genesis_root_key = NodeKey::new_empty_path(PRE_GENESIS_VERSION);
             let pre_genesis_root = reader.get_node_option(&pre_genesis_root_key)?;
 
@@ -167,13 +167,13 @@ where
                 None => {
                     // Hack: We need to start from an empty tree, so we insert
                     // a null node beforehand deliberately to deal with this corner case.
-                    let genesis_root_key = NodeKey::new_empty_path(0);
+                    let genesis_root_key = NodeKey::new_empty_path(Version(0));
                     node_cache.insert(genesis_root_key.clone(), Node::new_null());
                     genesis_root_key
                 }
             }
         } else {
-            NodeKey::new_empty_path(next_version - 1)
+            NodeKey::new_empty_path(Version(next_version.0 - 1))
         };
         Ok(Self {
             node_cache,
@@ -281,7 +281,7 @@ where
         // which failed to have an effect on the tree would mean that the *next* set of changes
         // would be faced with a non-existent root node at the version it is expecting, since it's
         // internally expected that the version increments every time the tree cache is frozen.
-        if self.next_version > 0
+        if self.next_version.0 > 0
             && self.node_cache.is_empty()
             && self.stale_node_index_cache.is_empty()
         {
@@ -319,7 +319,7 @@ where
         self.num_new_leaves = 0;
 
         // Prepare for the next version after freezing
-        self.next_version += 1;
+        self.next_version.0 += 1;
 
         Ok(())
     }

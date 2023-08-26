@@ -125,7 +125,7 @@ mod tests;
 #[cfg_attr(feature = "std", derive(Error))]
 #[cfg_attr(
     feature = "std",
-    error("Missing state root node at version {version}, probably pruned.")
+    error("Missing state root node at version {}, probably pruned.", version.0)
 )]
 pub struct MissingRootError {
     pub version: Version,

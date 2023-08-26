@@ -1,6 +1,4 @@
-use crate::{
-    storage::TreeUpdateBatch, OwnedValue
-};
+use crate::{storage::TreeUpdateBatch, OwnedValue, Version};
 use anyhow::Result;
 #[cfg(not(feature = "std"))]
 use hashbrown::HashMap;
@@ -12,12 +10,11 @@ use std::collections::HashMap;
 pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
     type KeyHash: std::hash::Hash + std::cmp::Eq;
     type NodeKey;
-    type Version: From<u64> + Into<u64> + std::cmp::Ord + Default + Copy + Clone;
     type Node;
     type NodeIter: Iterator<Item = (Self::NodeKey, Self::Node)>;
-    type HistoryIter: Iterator<Item = (Self::KeyHash, Vec<(Self::Version, Option<OwnedValue>)>)>;
+    type HistoryIter: Iterator<Item = (Self::KeyHash, Vec<(Version, Option<OwnedValue>)>)>;
     /// Get the associated `OwnedValue` to a given `KeyHash`, and `Version` threshold.
-    fn get(&self, max_version: Self::Version, node_key: Self::KeyHash) -> Result<Option<OwnedValue>>;
+    fn get(&self, max_version: Version, node_key: Self::KeyHash) -> Result<Option<OwnedValue>>;
 
     /// A convenience wrapper for `VersionedDatabase::update_batch` when updating singular key-value pairs.
     ///
@@ -112,17 +109,18 @@ pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
     /// assert_eq!(db.len(), 1);
     /// ```
     fn len(&self) -> usize {
-        let map: HashMap<Self::KeyHash, Vec<(Self::Version, Option<OwnedValue>)>> = self.value_history().collect();
-        map 
-            .values()
+        let map: HashMap<Self::KeyHash, Vec<(Version, Option<OwnedValue>)>> =
+            self.value_history().collect();
+        map.values()
             .filter(|vals| vals.last().and_then(|(_, val)| val.as_ref()).is_some())
             .count()
     }
 
     /// Get the latest [`Version`] of the tree stored in the value history.
-    fn version(&self) -> Self::Version {
-        let mut latest: Self::Version = Self::Version::default();
-        let map: HashMap<Self::KeyHash, Vec<(Self::Version, Option<OwnedValue>)>> = self.value_history().collect();
+    fn version(&self) -> Version {
+        let mut latest: Version = Version::default();
+        let map: HashMap<Self::KeyHash, Vec<(Version, Option<OwnedValue>)>> =
+            self.value_history().collect();
         for values in map.values() {
             for (ver, _) in values.iter() {
                 if ver > &latest {
