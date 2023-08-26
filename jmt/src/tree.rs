@@ -96,7 +96,7 @@ where
     }
 
     fn version(&self) -> Version {
-        self.reader.version()
+        self.reader.version().into()
     }
 
     fn reader(&self) -> &Arc<R> {
