@@ -45,6 +45,17 @@ pub struct JellyfishMerkleTree<R: TreeReader + VersionedDatabase, H: SimpleHashe
     _phantom_hasher: PhantomHasher<H>,
 }
 
+impl<R, H> Default for JellyfishMerkleTree<R, H>
+where
+    R: TreeReader + VersionedDatabase + Default,
+    H: SimpleHasher,
+{
+    fn default() -> Self {
+        let db = Arc::new(R::default());
+        JellyfishMerkleTree::new(db)
+    }
+}
+
 #[cfg(feature = "ics23")]
 pub mod ics23_impl;
 
