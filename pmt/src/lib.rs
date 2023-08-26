@@ -23,7 +23,7 @@ pub use jmt::{
     db::VersionedDatabase,
     mock::MockTreeStore,
     proof::SparseMerkleProof,
-    reader::TreeReader,
+    reader::{TreeReader, HasPreimage, Preimage},
     storage::{LeafNode, Node, NodeBatch, NodeKey, TreeUpdateBatch},
     trie::VersionedTrie,
     writer::TreeWriter,
