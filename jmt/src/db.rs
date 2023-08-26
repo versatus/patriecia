@@ -1,6 +1,5 @@
 use crate::{
-    storage::{Node, NodeKey, TreeUpdateBatch},
-    KeyHash, OwnedValue, Version,
+    storage::TreeUpdateBatch, OwnedValue
 };
 use anyhow::Result;
 #[cfg(not(feature = "std"))]
@@ -11,8 +10,14 @@ use std::collections::HashMap;
 /// Defines the interaction between a database and the node versioning strategy
 /// of the `JellyfishMerkleTree`.
 pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
+    type KeyHash: std::hash::Hash + std::cmp::Eq;
+    type NodeKey;
+    type Version: From<u64> + Into<u64> + std::cmp::Ord + Default + Copy + Clone;
+    type Node;
+    type NodeIter: Iterator<Item = (Self::NodeKey, Self::Node)>;
+    type HistoryIter: Iterator<Item = (Self::KeyHash, Vec<(Self::Version, Option<OwnedValue>)>)>;
     /// Get the associated `OwnedValue` to a given `KeyHash`, and `Version` threshold.
-    fn get(&self, max_version: Version, node_key: KeyHash) -> Result<Option<OwnedValue>>;
+    fn get(&self, max_version: Self::Version, node_key: Self::KeyHash) -> Result<Option<OwnedValue>>;
 
     /// A convenience wrapper for `VersionedDatabase::update_batch` when updating singular key-value pairs.
     ///
@@ -107,16 +112,18 @@ pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
     /// assert_eq!(db.len(), 1);
     /// ```
     fn len(&self) -> usize {
-        self.value_history()
+        let map: HashMap<Self::KeyHash, Vec<(Self::Version, Option<OwnedValue>)>> = self.value_history().collect();
+        map 
             .values()
             .filter(|vals| vals.last().and_then(|(_, val)| val.as_ref()).is_some())
             .count()
     }
 
     /// Get the latest [`Version`] of the tree stored in the value history.
-    fn version(&self) -> Version {
-        let mut latest: u64 = 0;
-        for values in self.value_history().values() {
+    fn version(&self) -> Self::Version {
+        let mut latest: Self::Version = Self::Version::default();
+        let map: HashMap<Self::KeyHash, Vec<(Self::Version, Option<OwnedValue>)>> = self.value_history().collect();
+        for values in map.values() {
             for (ver, _) in values.iter() {
                 if ver > &latest {
                     latest = *ver;
@@ -139,7 +146,7 @@ pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
     ///     println!("{key}: {node}");
     /// }
     /// ```
-    fn nodes(&self) -> HashMap<NodeKey, Node>;
+    fn nodes(&self) -> Self::NodeIter;
 
     /// Replaces `Database::values()`. Returns a clone of the value history HashMap which
     /// has a `.values()` method returning `Values<KeyHash, Vec<(Version, Option<OwnedValue>)>>`
@@ -154,7 +161,7 @@ pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
     ///     println!("{key}: {ver} - {val}");
     /// }
     /// ```
-    fn value_history(&self) -> HashMap<KeyHash, Vec<(Version, Option<OwnedValue>)>>;
+    fn value_history(&self) -> Self::HistoryIter;
 
     /// Returns true if there are no nodes with `OwnedValue`s for the latest
     /// `Version` in `VersionedDatabase::value_history()`

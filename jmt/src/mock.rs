@@ -9,10 +9,10 @@ use parking_lot::RwLock;
 use thiserror::Error;
 
 #[cfg(not(feature = "std"))]
-use hashbrown::{hash_map::Entry, HashMap};
+use hashbrown::{hash_map::{Entry, IntoIter}, HashMap};
 #[cfg(feature = "std")]
 use std::{
-    collections::{hash_map::Entry, HashMap},
+    collections::{hash_map::{Entry, IntoIter}, HashMap},
     sync::Arc,
 };
 
@@ -58,6 +58,13 @@ impl Default for MockTreeStore {
 }
 
 impl VersionedDatabase for MockTreeStore {
+    type KeyHash = KeyHash;
+    type NodeKey = NodeKey;
+    type Node = Node;
+    type Version = u64;
+    type NodeIter = IntoIter<NodeKey, Node>;
+    type HistoryIter = IntoIter<KeyHash, Vec<(Version, Option<OwnedValue>)>>;
+
     fn get(&self, max_version: Version, key_hash: KeyHash) -> Result<Option<OwnedValue>> {
         self.get_value_option(max_version, key_hash)
     }
@@ -66,12 +73,12 @@ impl VersionedDatabase for MockTreeStore {
         self.write_tree_update_batch(tree_update_batch)
     }
 
-    fn nodes(&self) -> HashMap<NodeKey, Node> {
-        self.data.read().nodes.clone()
+    fn nodes(&self) -> Self::NodeIter {
+        self.data.read().nodes.clone().into_iter()
     }
 
-    fn value_history(&self) -> HashMap<KeyHash, Vec<(Version, Option<OwnedValue>)>> {
-        self.data.read().value_history.clone()
+    fn value_history(&self) -> Self::HistoryIter {
+        self.data.read().value_history.clone().into_iter()
     }
 }
 
