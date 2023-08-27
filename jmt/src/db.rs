@@ -1,5 +1,5 @@
 use crate::{
-    storage::TreeUpdateBatch, OwnedValue
+    storage::{TreeUpdateBatch, NodeKey, Node}, OwnedValue, KeyHash
 };
 use anyhow::Result;
 #[cfg(not(feature = "std"))]
@@ -7,17 +7,56 @@ use hashbrown::HashMap;
 #[cfg(feature = "std")]
 use std::collections::HashMap;
 
+#[derive(Clone, Copy, Debug, Ord, PartialOrd, Eq, PartialEq)]
+pub struct Version(pub u64);
+
+impl From<u64> for Version {
+    fn from(v: u64) -> Self {
+        Version(v)
+    }
+}
+
+impl From<Version> for u64 {
+    fn from(v: Version) -> u64 {
+        v.0
+    }
+}
+
+impl From<Vec<u8>> for Version {
+    fn from(v: Vec<u8>) -> Self {
+        Version(u64::from_be_bytes(v.try_into().unwrap_or_default()))
+    }
+}
+
+impl From<Version> for Vec<u8> {
+    fn from(v: Version) -> Self {
+        v.0.to_be_bytes().to_vec()
+    }
+}
+
+impl Default for Version {
+    fn default() -> Version {
+        Version(u64::default())
+    }
+}
+
+impl std::fmt::Display for Version {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+unsafe impl Send for Version {}
+unsafe impl Sync for Version {}
+
 /// Defines the interaction between a database and the node versioning strategy
 /// of the `JellyfishMerkleTree`.
 pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
-    type KeyHash: std::hash::Hash + std::cmp::Eq;
-    type NodeKey;
-    type Version: From<u64> + Into<u64> + std::cmp::Ord + Default + Copy + Clone;
-    type Node;
-    type NodeIter: Iterator<Item = (Self::NodeKey, Self::Node)>;
-    type HistoryIter: Iterator<Item = (Self::KeyHash, Vec<(Self::Version, Option<OwnedValue>)>)>;
+    type Version: Into<u64> + From<u64> + From<Vec<u8>> + Into<Vec<u8>> + Clone + Copy + Default + std::fmt::Debug + std::fmt::Display + Ord + Eq;
+    type NodeIter: Iterator<Item = (NodeKey, Node)>;
+    type HistoryIter: Iterator<Item = (KeyHash, Vec<(Self::Version, Option<OwnedValue>)>)>;
     /// Get the associated `OwnedValue` to a given `KeyHash`, and `Version` threshold.
-    fn get(&self, max_version: Self::Version, node_key: Self::KeyHash) -> Result<Option<OwnedValue>>;
+    fn get(&self, max_version: Self::Version, node_key: KeyHash) -> Result<Option<OwnedValue>>;
 
     /// A convenience wrapper for `VersionedDatabase::update_batch` when updating singular key-value pairs.
     ///
@@ -112,7 +151,7 @@ pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
     /// assert_eq!(db.len(), 1);
     /// ```
     fn len(&self) -> usize {
-        let map: HashMap<Self::KeyHash, Vec<(Self::Version, Option<OwnedValue>)>> = self.value_history().collect();
+        let map: HashMap<KeyHash, Vec<(Self::Version, Option<OwnedValue>)>> = self.value_history().collect();
         map 
             .values()
             .filter(|vals| vals.last().and_then(|(_, val)| val.as_ref()).is_some())
@@ -122,7 +161,7 @@ pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
     /// Get the latest [`Version`] of the tree stored in the value history.
     fn version(&self) -> Self::Version {
         let mut latest: Self::Version = Self::Version::default();
-        let map: HashMap<Self::KeyHash, Vec<(Self::Version, Option<OwnedValue>)>> = self.value_history().collect();
+        let map: HashMap<KeyHash, Vec<(Self::Version, Option<OwnedValue>)>> = self.value_history().collect();
         for values in map.values() {
             for (ver, _) in values.iter() {
                 if ver > &latest {

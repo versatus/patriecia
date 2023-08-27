@@ -65,7 +65,7 @@ where
     H: SimpleHasher,
 {
     fn get(&self, key: KeyHash, version: Version) -> Result<Option<OwnedValue>> {
-        self.reader.get_value_option(version, key)
+        self.reader.get_value_option(version.into(), key)
     }
 
     fn get_proof(&self, key: KeyHash, version: Version) -> Result<SparseMerkleProof<H>> {
@@ -884,7 +884,7 @@ where
                 Node::Leaf(leaf_node) => {
                     return Ok((
                         if leaf_node.key_hash() == key {
-                            Some(self.reader.get_value(version, leaf_node.key_hash())?)
+                            Some(self.reader.get_value(version.into(), leaf_node.key_hash())?)
                         } else {
                             None
                         },

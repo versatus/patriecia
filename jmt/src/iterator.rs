@@ -296,7 +296,7 @@ where
                     self.done = true;
                     return match self
                         .reader
-                        .get_value(root_node_key.version(), leaf_node.key_hash())
+                        .get_value(root_node_key.version().into(), leaf_node.key_hash())
                     {
                         Ok(value) => Some(Ok((leaf_node.key_hash(), value))),
                         Err(e) => Some(Err(e)),
@@ -335,7 +335,7 @@ where
                 Ok(Node::Leaf(leaf_node)) => {
                     return match self
                         .reader
-                        .get_value(node_key.version(), leaf_node.key_hash())
+                        .get_value(node_key.version().into(), leaf_node.key_hash())
                     {
                         Ok(value) => {
                             let ret = (leaf_node.key_hash(), value);
