@@ -58,14 +58,11 @@ impl Default for MockTreeStore {
 }
 
 impl VersionedDatabase for MockTreeStore {
-    type KeyHash = KeyHash;
-    type NodeKey = NodeKey;
-    type Node = Node;
-    type Version = u64;
+    type Version = crate::db::Version; 
     type NodeIter = IntoIter<NodeKey, Node>;
-    type HistoryIter = IntoIter<KeyHash, Vec<(Version, Option<OwnedValue>)>>;
+    type HistoryIter = IntoIter<KeyHash, Vec<(crate::db::Version, Option<OwnedValue>)>>;
 
-    fn get(&self, max_version: Version, key_hash: KeyHash) -> Result<Option<OwnedValue>> {
+    fn get(&self, max_version: crate::db::Version, key_hash: KeyHash) -> Result<Option<OwnedValue>> {
         self.get_value_option(max_version, key_hash)
     }
 
@@ -78,11 +75,17 @@ impl VersionedDatabase for MockTreeStore {
     }
 
     fn value_history(&self) -> Self::HistoryIter {
-        self.data.read().value_history.clone().into_iter()
+        //TODO: fix MockTreeStore to take a Version
+        self.data.read().value_history.clone().into_iter().map(|(k, v)| {
+           let v = v.iter().map(|i| (crate::db::Version(i.0), i.1.clone())).collect();
+           (k, v)
+        }).collect::<HashMap<KeyHash, Vec<(crate::db::Version, Option<OwnedValue>)>>>().into_iter()
     }
 }
 
 impl TreeReader for MockTreeStore {
+    type Version = crate::db::Version;
+
     fn get_node_option(&self, node_key: &NodeKey) -> Result<Option<Node>> {
         Ok(self.data.read().nodes.get(node_key).cloned())
     }
@@ -106,13 +109,13 @@ impl TreeReader for MockTreeStore {
 
     fn get_value_option(
         &self,
-        max_version: Version,
+        max_version: crate::db::Version,
         key_hash: crate::KeyHash,
     ) -> Result<Option<crate::OwnedValue>> {
         match self.data.read().value_history.get(&key_hash) {
             Some(version_history) => {
                 for (version, value) in version_history.iter().rev() {
-                    if *version <= max_version {
+                    if crate::db::Version(*version) <= max_version {
                         return Ok(value.clone());
                     }
                 }

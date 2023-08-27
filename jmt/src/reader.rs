@@ -2,12 +2,13 @@ use alloc::vec::Vec;
 use anyhow::{format_err, Result};
 
 use crate::node_type::{LeafNode, Node, NodeKey};
-use crate::{KeyHash, OwnedValue, Version};
+use crate::{KeyHash, OwnedValue};
 
 /// Defines the interface between a
 /// [`JellyfishMerkleTree`](crate::JellyfishMerkleTree)
 /// and underlying storage holding nodes.
 pub trait TreeReader: Clone + Default {
+    type Version: Into<u64> + From<u64> + From<Vec<u8>> + Into<Vec<u8>> + Copy + Clone + Default + std::fmt::Debug + std::fmt::Display + Ord + Eq;
     /// Gets node given a node key. Returns error if the node does not exist.
     fn get_node(&self, node_key: &NodeKey) -> Result<Node> {
         self.get_node_option(node_key)?
@@ -19,7 +20,7 @@ pub trait TreeReader: Clone + Default {
 
     /// Gets a value by identifier, returning the newest value whose version is *less than or
     /// equal to* the specified version. Returns an error if the value does not exist.
-    fn get_value(&self, max_version: Version, key_hash: KeyHash) -> Result<OwnedValue> {
+    fn get_value(&self, max_version: Self::Version, key_hash: KeyHash) -> Result<OwnedValue> {
         self.get_value_option(max_version, key_hash)?
             .ok_or_else(|| {
                 format_err!(
@@ -32,7 +33,7 @@ pub trait TreeReader: Clone + Default {
     /// equal to* the specified version.  Returns None if the value does not exist.
     fn get_value_option(
         &self,
-        max_version: Version,
+        max_version: Self::Version,
         key_hash: KeyHash,
     ) -> Result<Option<OwnedValue>>;
 
