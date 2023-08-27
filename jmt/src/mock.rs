@@ -32,7 +32,7 @@ pub enum MockTreeStoreError {}
 struct MockTreeStoreInner {
     nodes: HashMap<NodeKey, Node>,
     stale_nodes: BTreeSet<StaleNodeIndex>,
-    value_history: HashMap<KeyHash, Vec<(Version, Option<OwnedValue>)>>,
+    value_history: HashMap<KeyHash, Vec<(crate::db::Version, Option<OwnedValue>)>>,
     /// Key is a KeyHash of the Preimage, and value is the Preimage itself
     preimages: HashMap<KeyHash, Preimage>,
 }
@@ -76,10 +76,7 @@ impl VersionedDatabase for MockTreeStore {
 
     fn value_history(&self) -> Self::HistoryIter {
         //TODO: fix MockTreeStore to take a Version
-        self.data.read().value_history.clone().into_iter().map(|(k, v)| {
-           let v = v.iter().map(|i| (crate::db::Version(i.0), i.1.clone())).collect();
-           (k, v)
-        }).collect::<HashMap<KeyHash, Vec<(crate::db::Version, Option<OwnedValue>)>>>().into_iter()
+        self.data.read().value_history.clone().into_iter()
     }
 }
 
@@ -115,7 +112,7 @@ impl TreeReader for MockTreeStore {
         match self.data.read().value_history.get(&key_hash) {
             Some(version_history) => {
                 for (version, value) in version_history.iter().rev() {
-                    if crate::db::Version(*version) <= max_version {
+                    if *version <= max_version {
                         return Ok(value.clone());
                     }
                 }
@@ -144,7 +141,7 @@ impl TreeWriter for MockTreeStore {
         for ((version, key_hash), value) in node_batch.values() {
             put_value(
                 &mut locked.value_history,
-                *version,
+                version.into(),
                 *key_hash,
                 value.clone(),
             )?
@@ -155,8 +152,8 @@ impl TreeWriter for MockTreeStore {
 
 /// Place a value into the provided value history map. Versions must be pushed in non-decreasing order per key.
 pub fn put_value(
-    value_history: &mut HashMap<KeyHash, Vec<(Version, Option<OwnedValue>)>>,
-    version: Version,
+    value_history: &mut HashMap<KeyHash, Vec<(crate::db::Version, Option<OwnedValue>)>>,
+    version: crate::db::Version,
     key: KeyHash,
     value: Option<OwnedValue>,
 ) -> Result<()> {
@@ -200,7 +197,7 @@ impl MockTreeStore {
                 v.insert(leaf.into());
             }
         }
-        put_value(&mut locked.value_history, version, key_hash, Some(value))
+        put_value(&mut locked.value_history, version.into(), key_hash, Some(value))
     }
 
     pub fn put_key_preimage<H: SimpleHasher>(&self, preimage: &Preimage) {
