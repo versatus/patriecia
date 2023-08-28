@@ -104,7 +104,7 @@ pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
     /// }
     /// assert!(db.is_empty());
     /// ```
-    fn update(&self, tree_update_batch: TreeUpdateBatch) -> Result<()> {
+    fn update(&mut self, tree_update_batch: TreeUpdateBatch) -> Result<()> {
         self.update_batch(tree_update_batch)
     }
 
@@ -114,7 +114,7 @@ pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
     ///
     /// See [`jmt::tests::jellyfish_merkle::test_batch_insertion`](jmt/src/tests/jellyfish_merkle.rs)
     /// for a detailed example.
-    fn update_batch(&self, tree_update_batch: TreeUpdateBatch) -> Result<()>;
+    fn update_batch(&mut self, tree_update_batch: TreeUpdateBatch) -> Result<()>;
 
     /// Returns the number of `Some` values within `value_history`
     /// for all keys at the latest version.

@@ -66,7 +66,7 @@ impl VersionedDatabase for MockTreeStore {
         self.get_value_option(max_version, key_hash)
     }
 
-    fn update_batch(&self, tree_update_batch: TreeUpdateBatch) -> Result<()> {
+    fn update_batch(&mut self, tree_update_batch: TreeUpdateBatch) -> Result<()> {
         self.write_tree_update_batch(tree_update_batch)
     }
 
@@ -130,7 +130,7 @@ impl HasPreimage for MockTreeStore {
 }
 
 impl TreeWriter for MockTreeStore {
-    fn write_node_batch(&self, node_batch: &NodeBatch) -> Result<()> {
+    fn write_node_batch(&mut self, node_batch: &NodeBatch) -> Result<()> {
         let mut locked = self.data.write();
         for (node_key, node) in node_batch.nodes() {
             let replaced = locked.nodes.insert(node_key.clone(), node.clone());
@@ -214,8 +214,8 @@ impl MockTreeStore {
         Ok(())
     }
 
-    pub fn write_tree_update_batch(&self, batch: TreeUpdateBatch) -> Result<()> {
-        self.write_node_batch(&batch.node_batch)?;
+    pub fn write_tree_update_batch(&mut self, batch: TreeUpdateBatch) -> Result<()> {
+        self.write_node_batch(&mut batch.node_batch)?;
         batch
             .stale_node_index_batch
             .into_iter()

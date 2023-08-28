@@ -17,7 +17,7 @@ use crate::{
 /// to the underlying storage holding nodes.
 pub trait TreeWriter {
     /// Writes a node batch into storage.
-    fn write_node_batch(&self, node_batch: &NodeBatch) -> Result<()>;
+    fn write_node_batch(&mut self, node_batch: &NodeBatch) -> Result<()>;
 }
 
 /// Node batch that will be written into db atomically with other batches.
