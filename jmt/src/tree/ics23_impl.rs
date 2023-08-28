@@ -75,6 +75,7 @@ fn sparse_merkle_proof_to_ics23_existence_proof<H: SimpleHasher>(
     }
 }
 
+#[cfg(any(test, features = "mocks"))]
 impl<R, H> JellyfishMerkleTree<R, H>
 where
     R: TreeReader + HasPreimage + VersionedDatabase,

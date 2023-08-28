@@ -21,13 +21,14 @@ use crate::{
     mock::MockTreeStore,
     node_type::LeafNode,
     storage::Node,
+    tree::Sha256Jmt,
     trie::VersionedTrie,
     types::{
         proof::{SparseMerkleInternalNode, SparseMerkleRangeProof},
         Version, PRE_GENESIS_VERSION,
     },
     Bytes32Ext, JellyfishMerkleIterator, JellyfishMerkleTree, KeyHash, OwnedValue, RootHash,
-    Sha256Jmt, ValueHash, SPARSE_MERKLE_PLACEHOLDER_HASH,
+    ValueHash, SPARSE_MERKLE_PLACEHOLDER_HASH,
 };
 
 /// Computes the key immediately after `key`.

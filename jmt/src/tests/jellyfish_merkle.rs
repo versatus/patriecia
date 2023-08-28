@@ -22,12 +22,13 @@ use crate::{
         test_get_range_proof, test_get_with_proof, test_get_with_proof_with_deletions,
         test_get_with_proof_with_distinct_last_nibble,
     },
+    tree::Sha256Jmt,
     trie::VersionedTrie,
     types::{
         nibble::{nibble_path::NibblePath, Nibble},
         Version,
     },
-    JellyfishMerkleTree, KeyHash, MissingRootError, Sha256Jmt, SPARSE_MERKLE_PLACEHOLDER_HASH,
+    JellyfishMerkleTree, KeyHash, MissingRootError, SPARSE_MERKLE_PLACEHOLDER_HASH,
 };
 
 fn update_nibble(original_key: &KeyHash, n: usize, nibble: u8) -> KeyHash {

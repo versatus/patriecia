@@ -26,7 +26,7 @@ pub use jmt::{
     storage::{LeafNode, Node, NodeBatch, NodeKey, TreeUpdateBatch},
     trie::VersionedTrie,
     writer::{StaleNodeIndex, StaleNodeIndexBatch, TreeWriter},
-    H256Jmt, JellyfishMerkleIterator, JellyfishMerkleTree, KeyHash, OwnedValue, RootHash, Sha256,
+    JellyfishMerkleIterator, JellyfishMerkleTree, KeyHash, OwnedValue, RootHash, Sha256,
     SimpleHasher, ValueHash, Version,
 };
 pub use serde_hash::H256;

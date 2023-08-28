@@ -10,8 +10,8 @@ use sha2::Sha256;
 
 use super::helper::plus_one;
 use crate::{
-    iterator::JellyfishMerkleIterator, mock::MockTreeStore, trie::VersionedTrie, types::Version,
-    KeyHash, OwnedValue, Sha256Jmt,
+    iterator::JellyfishMerkleIterator, mock::MockTreeStore, tree::Sha256Jmt, trie::VersionedTrie,
+    types::Version, KeyHash, OwnedValue,
 };
 
 #[test]

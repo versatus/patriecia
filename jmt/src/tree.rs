@@ -31,20 +31,34 @@ use crate::{
 
 /// A [`JellyfishMerkleTree`] instantiated using the `sha2::Sha256` hasher.
 /// This is a sensible default choice for most applications.
+#[cfg(any(test, features = "mocks"))]
 pub type Sha256Jmt<R> = JellyfishMerkleTree<R, Sha256>;
 /// A [`JellyfishMerkleTree`] instantiated using a modified `keccak_hash::H256` hasher.
 /// This is the default choice for the vrrb protocol.
+#[cfg(any(test, features = "mocks"))]
 pub type H256Jmt<R> = JellyfishMerkleTree<R, H256>;
 
 /// A Jellyfish Merkle tree data structure, parameterized by a [`TreeReader`] `R`
 /// and a [`SimpleHasher`] `H`. See [`crate`] for description.
 #[derive(Debug, Clone)]
+#[cfg(any(test, features = "mocks"))]
 pub struct JellyfishMerkleTree<R: TreeReader + VersionedDatabase, H: SimpleHasher> {
     reader: Arc<R>,
     leaf_count_migration: bool,
     _phantom_hasher: PhantomHasher<H>,
 }
 
+/// A Jellyfish Merkle tree data structure, parameterized by a [`TreeReader`] `R`
+/// and a [`SimpleHasher`] `H`. See [`crate`] for description.
+#[derive(Debug, Clone)]
+#[cfg(not(any(test, features = "mocks")))]
+pub struct JellyfishMerkleTree<'a, R: TreeReader + VersionedDatabase, H: SimpleHasher> {
+    reader: &'a R,
+    leaf_count_migration: bool,
+    _phantom_hasher: PhantomHasher<H>,
+}
+
+#[cfg(any(test, features = "mocks"))]
 impl<R, H> Default for JellyfishMerkleTree<R, H>
 where
     R: TreeReader + VersionedDatabase + Default,
@@ -59,6 +73,7 @@ where
 #[cfg(feature = "ics23")]
 pub mod ics23_impl;
 
+#[cfg(any(test, features = "mocks"))]
 impl<R, H> VersionedTrie<R, H> for JellyfishMerkleTree<R, H>
 where
     R: TreeReader + VersionedDatabase,
@@ -104,6 +119,7 @@ where
     }
 }
 
+#[cfg(any(test, features = "mocks"))]
 impl<R, H> JellyfishMerkleTree<R, H>
 where
     R: TreeReader + VersionedDatabase,
@@ -884,7 +900,10 @@ where
                 Node::Leaf(leaf_node) => {
                     return Ok((
                         if leaf_node.key_hash() == key {
-                            Some(self.reader.get_value(version.into(), leaf_node.key_hash())?)
+                            Some(
+                                self.reader
+                                    .get_value(version.into(), leaf_node.key_hash())?,
+                            )
                         } else {
                             None
                         },

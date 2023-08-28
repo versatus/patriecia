@@ -1,4 +1,6 @@
-use crate::{db::VersionedDatabase, mock::MockTreeStore, trie::VersionedTrie, KeyHash, Sha256Jmt};
+use crate::{
+    db::VersionedDatabase, mock::MockTreeStore, tree::Sha256Jmt, trie::VersionedTrie, KeyHash,
+};
 use alloc::sync::Arc;
 use sha2::Sha256;
 

@@ -99,7 +99,7 @@ pub use iterator::JellyfishMerkleIterator;
 pub use sha2::Sha256;
 #[cfg(feature = "ics23")]
 pub use tree::ics23_impl::ics23_spec;
-pub use tree::{H256Jmt, JellyfishMerkleTree, Sha256Jmt};
+pub use tree::JellyfishMerkleTree;
 use types::nibble::ROOT_NIBBLE_HEIGHT;
 pub use types::proof;
 pub use types::Version;
