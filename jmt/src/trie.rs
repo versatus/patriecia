@@ -102,5 +102,5 @@ where
 
     /// Returns a reference to the reader for use in updating
     /// the database.
-    fn reader(&self) -> &mut R;
+    fn reader(&mut self) -> &mut R;
 }
