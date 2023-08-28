@@ -308,6 +308,7 @@ impl<H: SimpleHasher> JellyfishMerkleRestore<H> {
     /// Restores a chunk of accounts. This function will verify that the given chunk is correct
     /// using the proof and root hash, then write things to storage. If the chunk is invalid, an
     /// error will be returned and nothing will be written to storage.
+    #[cfg(any(test, feature = "mocks"))]
     fn add_chunk_impl(
         &mut self,
         chunk: Vec<(KeyHash, OwnedValue)>,
@@ -669,6 +670,7 @@ impl<H: SimpleHasher> JellyfishMerkleRestore<H> {
 
     /// Finishes the restoration process. This tells the code that there is no more account,
     /// otherwise we can not freeze the rightmost leaf and its ancestors.
+    #[cfg(any(test, feature = "mocks"))]
     fn finish_impl(mut self) -> Result<()> {
         // Deal with the special case when the entire tree has a single leaf.
         if self.partial_nodes.len() == 1 {
@@ -712,6 +714,7 @@ pub trait StateSnapshotReceiver {
     fn finish_box(self: Box<Self>) -> Result<()>;
 }
 
+#[cfg(any(test, feature = "mocks"))]
 impl<H: SimpleHasher> StateSnapshotReceiver for JellyfishMerkleRestore<H> {
     fn add_chunk(
         &mut self,
