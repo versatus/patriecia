@@ -15,12 +15,16 @@ use crate::{
 /// Defines the interface used to write a batch of updates from a
 /// [`JellyfishMerkleTree`](crate::JellyfishMerkleTree)
 /// to the underlying storage holding nodes.
+#[cfg(any(test, feature = "mocks"))]
 pub trait TreeWriter {
     /// Writes a node batch into storage.
-    #[cfg(any(test, feature = "mocks"))]
     fn write_node_batch(&self, node_batch: &NodeBatch) -> Result<()>;
-
-    #[cfg(not(any(test, feature = "mocks")))]
+}
+/// Defines the interface used to write a batch of updates from a
+/// [`JellyfishMerkleTree`](crate::JellyfishMerkleTree)
+/// to the underlying storage holding nodes.
+#[cfg(not(any(test, feature = "mocks")))]
+pub trait TreeWriter {
     fn write_node_batch(&mut self, node_batch: &NodeBatch) -> Result<()>;
 }
 
