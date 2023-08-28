@@ -20,13 +20,13 @@ pub(crate) mod nibbles;
 pub(crate) mod node;
 
 pub use jmt::{
-    db::VersionedDatabase,
+    db::{Version as Vers, VersionedDatabase},
     mock::MockTreeStore,
     proof::SparseMerkleProof,
-    reader::{TreeReader, HasPreimage, Preimage},
+    reader::{HasPreimage, Preimage, TreeReader},
     storage::{LeafNode, Node, NodeBatch, NodeKey, TreeUpdateBatch},
     trie::VersionedTrie,
-    writer::TreeWriter,
+    writer::{StaleNodeIndex, StaleNodeIndexBatch, TreeWriter},
     H256Jmt, JellyfishMerkleIterator, JellyfishMerkleTree, KeyHash, OwnedValue, RootHash, Sha256,
     SimpleHasher, ValueHash, Version,
 };
