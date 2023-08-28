@@ -34,6 +34,12 @@ impl From<Version> for Vec<u8> {
     }
 }
 
+impl From<&u64> for Version {
+    fn from(v: &u64) -> Version {
+        Version(*v)
+    }
+}
+
 impl Default for Version {
     fn default() -> Version {
         Version(u64::default())
