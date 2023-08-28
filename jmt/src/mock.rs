@@ -66,6 +66,7 @@ impl VersionedDatabase for MockTreeStore {
         self.get_value_option(max_version, key_hash)
     }
 
+    #[cfg(any(test, feature = "mocks"))]
     fn update_batch(&self, tree_update_batch: TreeUpdateBatch) -> Result<()> {
         self.write_tree_update_batch(tree_update_batch)
     }

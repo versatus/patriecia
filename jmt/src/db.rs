@@ -104,9 +104,16 @@ pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
     /// }
     /// assert!(db.is_empty());
     /// ```
+    #[cfg(any(test, feature = "mocks"))]
     fn update(&self, tree_update_batch: TreeUpdateBatch) -> Result<()> {
         self.update_batch(tree_update_batch)
     }
+    
+    #[cfg(not(any(test, feature = "mocks")))]
+    fn update(&mut self, tree_update_batch: TreeUpdateBatch) -> Result<()> {
+        self.update_batch(tree_update_batch)
+    }
+    
 
     /// Wrapper around [`TreeWriter::write_node_batch`](jmt/src/writer.rs) that also updates stale nodes.
     ///
@@ -114,8 +121,12 @@ pub trait VersionedDatabase: Send + Sync + Clone + Default + std::fmt::Debug {
     ///
     /// See [`jmt::tests::jellyfish_merkle::test_batch_insertion`](jmt/src/tests/jellyfish_merkle.rs)
     /// for a detailed example.
+    #[cfg(any(test, feature = "mocks"))]
     fn update_batch(&self, tree_update_batch: TreeUpdateBatch) -> Result<()>;
 
+    #[cfg(not(any(test, feature = "mocks")))]
+    fn update_batch(&mut self, tree_update_batch: TreeUpdateBatch) -> Result<()>;
+    
     /// Returns the number of `Some` values within `value_history`
     /// for all keys at the latest version.
     ///
