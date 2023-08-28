@@ -21,6 +21,7 @@ pub(crate) mod node;
 
 pub use jmt::{
     db::{Version as Vers, VersionedDatabase},
+    mock::MockTreeStore,
     proof::SparseMerkleProof,
     reader::{HasPreimage, Preimage, TreeReader},
     storage::{LeafNode, Node, NodeBatch, NodeKey, TreeUpdateBatch},

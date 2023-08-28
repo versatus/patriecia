@@ -23,9 +23,6 @@ fixed-hash = { workspace = true }
 serde_hash = { workspace = true }
 jmt = { workspace = true }
 
-[features]
-mocks = []
-
 [workspace]
 members = [
     "jmt",
@@ -35,10 +32,7 @@ members = [
 
 [workspace.dependencies]
 serde_hash = { path = "serde_hash" }
-#[cfg(any(tests, features = "mocks"))]
-mock_jmt = { path = "jmt", features = ["mocks"] }
-#[cfg(not(any))]
-jmt = { path = "jmt" }
+jmt = { path = "jmt", features = ["mocks"] }
 left-right = "0.11.5"
 keccak-hash = "0.9"
 fixed-hash = "0.7.0"
