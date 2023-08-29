@@ -1,5 +1,4 @@
 # patriecia
 
-Generic Ethereum-style Merkle-Patricia Trie
-
-**NOTE (30/08/2022):** very WIP. There's lots of unattended bugs and TODOs still.
+ A workspace that houses a Generic Ethereum-style Merkle-Patricia Trie, and a Jellyfish Merkle Trie based on Penumbra's Jellyfish Merkle Trie which has been configured to target Versatus' protocol. 
+ 
