@@ -83,8 +83,8 @@ where
         proof.verify(expected_root_hash, element_key, element_value)
     }
 
-    fn iter(&self, version: Version, starting_key: KeyHash) -> Result<JellyfishMerkleIterator<R>> {
-        JellyfishMerkleIterator::new(Arc::clone(&self.reader), version, starting_key)
+    fn iter(&self, version: Version) -> Result<JellyfishMerkleIterator<R>> {
+        JellyfishMerkleIterator::new_by_index(Arc::clone(&self.reader), version, 0)
     }
 
     fn len(&self) -> usize {
@@ -884,7 +884,10 @@ where
                 Node::Leaf(leaf_node) => {
                     return Ok((
                         if leaf_node.key_hash() == key {
-                            Some(self.reader.get_value(version.into(), leaf_node.key_hash())?)
+                            Some(
+                                self.reader
+                                    .get_value(version.into(), leaf_node.key_hash())?,
+                            )
                         } else {
                             None
                         },

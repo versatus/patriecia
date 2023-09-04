@@ -37,7 +37,7 @@ where
 
     /// Create a [`JellyfishMerkleIterator`] from the reader: R, to iterate
     /// over values in the tree starting at the given key and version.
-    fn iter(&self, version: Version, starting_key: KeyHash) -> Result<JellyfishMerkleIterator<R>>;
+    fn iter(&self, version: Version) -> Result<JellyfishMerkleIterator<R>>;
 
     /// Get the number of `Some(value)`s from the latest version of the tree stored in the `VersionedDatabase`.
     fn len(&self) -> usize;
