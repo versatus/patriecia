@@ -99,6 +99,7 @@ impl NodeVisitInfo {
 /// key-value pairs in this version of the tree, starting from the smallest key
 /// that is greater or equal to the given key, by performing a depth first
 /// traversal on the tree.
+#[derive(Debug)]
 pub struct JellyfishMerkleIterator<R: TreeReader + VersionedDatabase> {
     /// The storage engine from which we can read nodes using node keys.
     reader: Arc<R>,

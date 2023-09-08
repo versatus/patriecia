@@ -181,6 +181,12 @@ pub struct RootHash(pub [u8; 32]);
 #[cfg_attr(any(test, feature = "fuzzing"), derive(Arbitrary))]
 pub struct KeyHash(pub [u8; 32]);
 
+impl KeyHash {
+    pub fn sha256<K: Default + serde::Serialize>() -> Self {
+        Self::with::<Sha256>(bincode::serialize(&K::default()).unwrap_or_default())
+    }
+}
+
 #[derive(
     Copy,
     Clone,
